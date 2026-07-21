@@ -1,0 +1,17 @@
+body{
+    font-family: Arial;
+    margin:40px;
+}
+
+table{
+    border-collapse: collapse;
+    width:100%;
+}
+
+th,td{
+    padding:8px;
+}
+
+th{
+    background:#dddddd;
+}
