@@ -1,0 +1,80 @@
+[
+  {
+    "type": "AWS_ACCESS_KEY",
+    "description": "AWS Access Key ID",
+    "regex": "AKIA[0-9A-Z]{16}",
+    "flags": []
+  },
+  {
+    "type": "AWS_SECRET_KEY",
+    "description": "AWS Secret Access Key assigned to a recognizable variable name",
+    "regex": "(?:aws_secret_access_key|aws_secret_key|secret_access_key)\\s*[:=]\\s*['\"](?P<value>[A-Za-z0-9/+=]{40})['\"]",
+    "flags": ["IGNORECASE"]
+  },
+  {
+    "type": "GENERIC_API_KEY",
+    "description": "Generic api_key/apikey style assignment",
+    "regex": "(?:api[_-]?key|apikey)\\s*[:=]\\s*['\"](?P<value>[A-Za-z0-9\\-_]{16,})['\"]",
+    "flags": ["IGNORECASE"]
+  },
+  {
+    "type": "GENERIC_SECRET",
+    "description": "Generic secret/token style assignment",
+    "regex": "(?:secret|token|access[_-]?token)\\s*[:=]\\s*['\"](?P<value>[A-Za-z0-9\\-_./+=]{12,})['\"]",
+    "flags": ["IGNORECASE"]
+  },
+  {
+    "type": "GENERIC_PASSWORD",
+    "description": "Generic password assignment",
+    "regex": "(?:password|passwd|pwd)\\s*[:=]\\s*['\"](?P<value>[^'\"]{4,})['\"]",
+    "flags": ["IGNORECASE"]
+  },
+  {
+    "type": "SLACK_TOKEN",
+    "description": "Slack API token",
+    "regex": "xox[baprs]-[0-9A-Za-z-]{10,48}",
+    "flags": []
+  },
+  {
+    "type": "SLACK_WEBHOOK",
+    "description": "Slack incoming webhook URL",
+    "regex": "https://hooks\\.slack\\.com/services/T[0-9A-Za-z_]{8,}/B[0-9A-Za-z_]{8,}/[0-9A-Za-z_]{24}",
+    "flags": []
+  },
+  {
+    "type": "PRIVATE_KEY_HEADER",
+    "description": "PEM-format private key header",
+    "regex": "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
+    "flags": []
+  },
+  {
+    "type": "DB_CONNECTION_STRING",
+    "description": "Database connection string with embedded credentials",
+    "regex": "(?:postgres(?:ql)?|mysql|mongodb(?:\\+srv)?|redis)://[^\\s'\"]+:[^\\s'\"@]+@[^\\s'\"/]+",
+    "flags": ["IGNORECASE"]
+  },
+  {
+    "type": "JWT",
+    "description": "JSON Web Token (header.payload.signature)",
+    "regex": "eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+",
+    "flags": []
+  },
+  {
+    "type": "GITHUB_TOKEN",
+    "description": "GitHub personal access / app token",
+    "regex": "gh[pousr]_[A-Za-z0-9]{36}",
+    "flags": []
+  },
+  {
+    "type": "GOOGLE_API_KEY",
+    "description": "Google API key",
+    "regex": "AIza[0-9A-Za-z\\-_]{35}",
+    "flags": []
+  },
+  {
+    "type": "STRIPE_KEY",
+    "description": "Stripe live secret key",
+    "regex": "sk_live_[0-9a-zA-Z]{24,}",
+    "flags": []
+  }
+]
