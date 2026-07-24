@@ -1,0 +1,46 @@
+[
+  {
+    "detector_type": "AWS_ACCESS_KEY",
+    "matched_string": "AKIA3RJQ7KZ2NDLPWXYZ",
+    "file_path": ".env",
+    "line_number": 3,
+    "line_content": "aws_access_key_id=AKIA3RJQ7KZ2NDLPWXYZ"
+  },
+  {
+    "detector_type": "GENERIC_API_KEY",
+    "matched_string": "YOUR_API_KEY_HERE",
+    "file_path": "config/settings.py",
+    "line_number": 10,
+    "line_content": "api_key = \"YOUR_API_KEY_HERE\""
+  },
+  {
+    "detector_type": "AWS_ACCESS_KEY",
+    "matched_string": "AKIAI44QH8DHBZZZZZZZ",
+    "file_path": "tests/test_auth.py",
+    "line_number": 7,
+    "line_content": "key = \"AKIAI44QH8DHBZZZZZZZ\""
+  },
+  {
+    "detector_type": "HIGH_ENTROPY",
+    "matched_string": "Zx9Qk2LpN8vRt5Wm3Yb7Jc1Fd6Hs4Ae0",
+    "file_path": "auth.py",
+    "line_number": 42,
+    "commit_hash": "a1b2c3d4e5f6",
+    "entropy_score": 4.7,
+    "line_content": "custom_token = \"Zx9Qk2LpN8vRt5Wm3Yb7Jc1Fd6Hs4Ae0\""
+  },
+  {
+    "detector_type": "GENERIC_SECRET",
+    "matched_string": "q7Wm2Kp9RtZx5Vb3Yc1Nd",
+    "file_path": "billing.py",
+    "line_number": 18,
+    "line_content": "token = \"q7Wm2Kp9RtZx5Vb3Yc1Nd\""
+  },
+  {
+    "detector_type": "GENERIC_PASSWORD",
+    "matched_string": "hunter2fake9",
+    "file_path": "tests/fixtures/login.py",
+    "line_number": 5,
+    "line_content": "password = \"hunter2fake9\""
+  }
+]
