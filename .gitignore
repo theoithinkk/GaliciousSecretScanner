@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+test-repo/ 
+report.html 
+report.json 
+__pycache__/ 
+*.pyc 

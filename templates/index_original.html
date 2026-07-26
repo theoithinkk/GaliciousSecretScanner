@@ -8,8 +8,7 @@
 
 <body>
 
-<h1>SecretSentry</h1>
-<p>Scan a local folder or GitHub URL for exposed secrets.</p>
+<h1>Secret Scanner</h1>
 
 <form method="POST">
 
@@ -39,6 +38,36 @@
 <hr>
 <h3>Error</h3>
 <p>{{ error }}</p>
+{% endif %}
+
+{% if findings %}
+
+<hr>
+
+<h2>Results</h2>
+
+<table border="1" cellpadding="5">
+
+<tr>
+    <th>Commit</th>
+    <th>File</th>
+    <th>Line</th>
+    <th>Content</th>
+</tr>
+
+{% for f in findings %}
+
+<tr>
+    <td>{{ f.commit_hash or "WORKING" }}</td>
+    <td>{{ f.file_path }}</td>
+    <td>{{ f.line_number }}</td>
+    <td>{{ f.line_content }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
 {% endif %}
 
 </body>
