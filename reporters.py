@@ -121,6 +121,8 @@ _HTML_CSS = """<style>
     96%{clip-path:inset(20% 0 55% 0);transform:translate(-2px,1px);} }
   .sub { color:var(--muted); letter-spacing:.35em; text-transform:uppercase; font-size:.72rem;
     margin-bottom:1.4rem; }
+  .target-line { color:var(--green); font-size:.72rem; letter-spacing:.05em; margin:-1rem 0 1.4rem;
+    word-break:break-all; text-shadow:0 0 6px rgba(0,255,156,.35); }
   .cursor { display:inline-block; width:.55ch; height:1em; vertical-align:-.12em;
     background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 1.05s steps(1) infinite; }
   @keyframes blink { 50%{opacity:0;} }
@@ -276,7 +278,7 @@ _HTML_JS = """<script>
 </script>"""
 
 
-def render_html(scored: List[ScoredFinding]) -> str:
+def render_html(scored: List[ScoredFinding], target: str = "") -> str:
     counts = {sev: 0 for sev in Severity}
     for s in scored:
         counts[s.severity] += 1
@@ -341,7 +343,7 @@ def render_html(scored: List[ScoredFinding]) -> str:
     return (
         '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        '<title>SECRETSENTRY // scan report</title>'
+        '<title>SECRETSENTRY</title>'
         + _HTML_CSS +
         '</head><body>'
         '<canvas id="matrix"></canvas><div class="scanlines"></div>'
@@ -349,7 +351,8 @@ def render_html(scored: List[ScoredFinding]) -> str:
         f'<div class="boot">{boot_html}</div>'
         '<h1 class="glitch" data-text="SECRETSENTRY">SECRETSENTRY</h1>'
         '<div class="sub">threat scan report <span class="cursor"></span></div>'
-        f'<div class="cards">{cards}</div>'
+        + (f'<div class="target-line">> target: {html.escape(target)}</div>' if target else '')
+        + f'<div class="cards">{cards}</div>'
         '<div class="toolbar"><span class="lbl">sort //</span>'
         '<button class="sortbtn active" data-sort="sev">severity</button>'
         '<button class="sortbtn" data-sort="file">file</button>'

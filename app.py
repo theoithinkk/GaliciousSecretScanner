@@ -14,7 +14,9 @@ error message.
 
 from __future__ import annotations
 
-from flask import Flask, render_template, request, Response
+import os
+
+from flask import Flask, jsonify, render_template, request, Response
 
 from orchestrator import run_scan
 from walker import WalkerError
@@ -30,6 +32,7 @@ def index():
 
     target = (request.form.get("target") or "").strip()
     history = "history" in request.form
+    full_scan = request.form.get("scan_mode") == "full"
 
     if not target:
         return render_template(
@@ -38,7 +41,7 @@ def index():
         )
 
     try:
-        scored = run_scan(target, history=history)
+        scored = run_scan(target, history=history, full_scan=full_scan)
     except WalkerError as e:
         # Expected failure conditions from the walker (bad path, bad URL,
         # git missing, clone failed, etc) -- show the message, don't 500.
@@ -46,8 +49,59 @@ def index():
     except Exception as e:  # last-resort guard so a bug doesn't crash the demo
         return render_template("index.html", error=f"Unexpected error: {e}")
 
-    report_html = generate_report(scored, fmt="html")
+    report_html = generate_report(scored, fmt="html", target=target)
     return Response(report_html, mimetype="text/html")
+
+
+@app.route("/api/browse", methods=["GET"])
+def browse():
+    """
+    Lists subdirectories of a path on the machine running this Flask
+    server, so the "Browse..." folder picker in index.html can hand back
+    a real, full, absolute path -- something a plain <input type=file
+    webkitdirectory> can never do (browsers deliberately don't expose
+    real disk paths to JS). This only works because the tool is meant to
+    be run locally: server and target repo are the same machine.
+
+    Query param: path (optional). Defaults to the user's home directory.
+    Returns JSON: { path, parent, dirs: [{name, path}], error }
+    Only directories are listed -- never file contents.
+    """
+    requested = request.args.get("path", "").strip()
+    current = os.path.abspath(requested) if requested else os.path.expanduser("~")
+
+    if not os.path.isdir(current):
+        return jsonify({
+            "path": current,
+            "parent": os.path.dirname(current.rstrip(os.sep)) or None,
+            "dirs": [],
+            "error": f"Not a directory: {current}",
+        }), 400
+
+    dirs = []
+    try:
+        with os.scandir(current) as it:
+            for entry in it:
+                try:
+                    if entry.is_dir(follow_symlinks=False) and not entry.name.startswith("."):
+                        dirs.append({"name": entry.name, "path": os.path.join(current, entry.name)})
+                except OSError:
+                    continue  # unreadable entry (permissions, broken symlink, etc) -- skip it
+    except OSError as e:
+        return jsonify({
+            "path": current,
+            "parent": os.path.dirname(current.rstrip(os.sep)) or None,
+            "dirs": [],
+            "error": f"Can't read {current}: {e.strerror or e}",
+        }), 400
+
+    dirs.sort(key=lambda d: d["name"].lower())
+
+    parent = os.path.dirname(current.rstrip(os.sep))
+    if parent == current:  # already at filesystem root
+        parent = None
+
+    return jsonify({"path": current, "parent": parent, "dirs": dirs, "error": None})
 
 
 if __name__ == "__main__":

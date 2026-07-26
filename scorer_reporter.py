@@ -306,12 +306,12 @@ def filter_and_score(
 
 
 # Public API 2: generate_report
-
 def generate_report(
     scored_findings: List[ScoredFinding],
     fmt: str = "terminal",
     output_path: Optional[str] = None,
     use_color: Optional[bool] = None,
+    target: str = "",
 ) -> str:
     """
     Render scored findings. fmt is "terminal" | "json" | "html".
@@ -324,7 +324,7 @@ def generate_report(
     elif fmt == "json":
         out = render_json(scored_findings)
     elif fmt == "html":
-        out = render_html(scored_findings)
+        out = render_html(scored_findings, target=target)
     else:
         raise ValueError(f"Unknown report format {fmt!r} (use terminal|json|html)")
 

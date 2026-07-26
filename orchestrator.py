@@ -42,6 +42,7 @@ def collect_raw_findings(
     history: bool = False,
     ignore_rules: Optional[Iterable[str]] = None,
     max_commits: Optional[int] = None,
+    full_scan: bool = False,
 ) -> List[RawFinding]:
     """
     Run the walker over `target`, run BOTH detectors over every line it
@@ -51,6 +52,10 @@ def collect_raw_findings(
     A single line can produce zero, one, or several RawFindings (e.g. a
     line could trip a regex pattern AND look high-entropy in a different
     span -- both get kept, scorer_reporter decides what matters).
+
+    full_scan=True skips the built-in default ignore list (binaries,
+    node_modules/, build/, etc) so nothing is left out. full_scan=False
+    (quick scan, the default) applies those default ignores as usual.
     """
     raw_findings: List[RawFinding] = []
 
@@ -59,6 +64,7 @@ def collect_raw_findings(
         ignore_rules=ignore_rules,
         history=history,
         max_commits=max_commits,
+        use_default_ignores=not full_scan,
     ):
         line = walker_finding.line_content
         if not line:
@@ -79,11 +85,15 @@ def run_scan(
     ignore_rules: Optional[Iterable[str]] = None,
     max_commits: Optional[int] = None,
     context: Optional[ScanContext] = None,
+    full_scan: bool = False,
 ) -> List[ScoredFinding]:
     """
     Full pipeline in one call: walk -> detect (both detectors) -> merge ->
     filter & score. Returns ScoredFindings, worst-first, ready to hand
     straight to scorer_reporter.generate_report().
+
+    full_scan=True disables the default ignore list (quick scan's default
+    skip-list of binaries/vendor/build noise) so every file is scanned.
 
     Raises WalkerError for expected failure conditions (bad path, bad URL,
     git not installed, clone failure, etc) -- callers (Flask route / CLI)
@@ -95,5 +105,6 @@ def run_scan(
         history=history,
         ignore_rules=ignore_rules,
         max_commits=max_commits,
+        full_scan=full_scan,
     )
     return filter_and_score(raw, context)

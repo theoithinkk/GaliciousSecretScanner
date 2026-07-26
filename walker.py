@@ -31,17 +31,23 @@ def walk(
     ignore_rules: Optional[Iterable[str]] = None,
     history: bool = False,
     max_commits: Optional[int] = None,
+    use_default_ignores: bool = True,
 ) -> Iterator[Finding]:
     """
     Walk path_or_url and yield a Finding for every line worth scanning. history=True also digs through 'git log -p --all'
 
-    and yields lines that were ever added, even if they got deleted later
+    and yields lines that were ever added, even if they got deleted later.
+
+    use_default_ignores=False skips config/default_ignores.json (and its
+    binary/vendor/build noise) entirely -- used for a "full scan" where
+    nothing should be left out. .sentryignore and any explicit ignore_rules
+    still apply either way.
     """
     
     repoPath, isTempClone = resolveTarget(path_or_url)
 
     try:
-        spec = buildIgnoreSpec(repoPath, ignore_rules)
+        spec = buildIgnoreSpec(repoPath, ignore_rules, use_default_ignores=use_default_ignores)
 
         yield from walkWorkingTree(repoPath, spec)
 
@@ -112,8 +118,12 @@ def loadDefaultIgnores() -> List[str]:
         return []
 
 # .sentryignore handling
-def buildIgnoreSpec(repoPath: str, extraRules: Optional[Iterable[str]]):
-    patterns: List[str] = loadDefaultIgnores()
+def buildIgnoreSpec(
+    repoPath: str,
+    extraRules: Optional[Iterable[str]],
+    use_default_ignores: bool = True,
+):
+    patterns: List[str] = loadDefaultIgnores() if use_default_ignores else []
 
     sentryIgnorePath = os.path.join(repoPath, ".sentryignore")
     if os.path.isfile(sentryIgnorePath):
