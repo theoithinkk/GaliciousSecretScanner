@@ -25,7 +25,8 @@ What this module is responsible for (and the upstream modules are NOT):
   engineer the score.
 
 Data shapes live in models.py; the three renderers (terminal, JSON, HTML)
-live in reporters.py. This file is just the logic.
+live in reporters.py; collapsing duplicate hits into one leak lives in
+dedup.py. This file is just the scoring logic.
 
 The scoring rubric is deliberately a small, documented point system (see
 SCORING RUBRIC below) rather than a black box, because it has to be
@@ -41,8 +42,9 @@ import re
 import sys
 from typing import Iterable, List, Optional, Union
 
+from dedup import deduplicate as _dedup
 from models import Severity, RawFinding, ScoredFinding, ScanContext
-from reporters import render_terminal, render_json, render_html
+from reporters import render_terminal, render_json
 
 
 # Placeholder filter
@@ -56,6 +58,10 @@ _PLACEHOLDER_PATTERNS = [
     r"change[_\- ]?me",
     r"<[^>]+>",                     # <insert-key-here>, <token>, angle-bracket tokens
     r"\{\{.*\}\}",                  # {{ template placeholders }}
+    r"\$\{[^}]*\}",                 # ${DB_PASSWORD} -- substitution, not a literal
+    # An env lookup is the correct way to hold a secret, so flagging the lookup
+    # itself would penalise code that has already been fixed.
+    r"os\.environ|os\.getenv|process\.env|getenv\s*\(|System\.getenv",
     r"example",
     r"placeholder",
     r"dummy",
@@ -206,6 +212,10 @@ def _score_one(rf: RawFinding) -> tuple[int, str, List[str]]:
         points -= 25
         reasons.append("in docs/markdown (-25)")
 
+    # Only reachable for history-ONLY findings: deduplicate() gives a leak that
+    # is still in the working tree a representative with commit_hash=None, even
+    # when the same secret also appears in history. So this discount can no
+    # longer be applied to a live credential.
     if rf.commit_hash:
         points -= 5
         reasons.append("history-only, removed from working tree (-5)")
@@ -231,6 +241,24 @@ def _band(points: int) -> Severity:
     return Severity.LOW
 
 
+# Deduplication lives in dedup.py; it only needs to know which detector type is
+# the more specific match, which is a scoring judgement, so the rubric's base
+# points are handed to it rather than imported from here (and the import stays
+# one-directional).
+
+def _base_points(detector_type: str) -> int:
+    return _BASE_POINTS.get(detector_type, _DEFAULT_BASE)
+
+
+def deduplicate(findings: Iterable[RawFinding]) -> List[RawFinding]:
+    """
+    Collapse raw findings so one leaked secret produces one finding.
+    See dedup.py for what "the same leak" means and why it matters.
+    """
+    return _dedup(findings, _base_points)
+
+
+
 # Public API 1: filter_and_score
 
 def _coerce(f: Union[RawFinding, dict]) -> RawFinding:
@@ -248,18 +276,21 @@ def filter_and_score(
     context: Optional[ScanContext] = None,
 ) -> List[ScoredFinding]:
     """
-    Drop placeholders, score the rest, and return them sorted worst-first.
+    Deduplicate, drop placeholders, score the rest, and return them sorted
+    worst-first.
 
     `context` is optional scan-wide config (see ScanContext). Per-finding
     context (file location, working-tree vs history, entropy) is read from
     each finding's own metadata.
+
+    Dedup runs FIRST so that one leaked secret is scored once (see the
+    DEDUPLICATION section above) and so the entropy evidence merged off
+    duplicates is available to the scorer.
     """
     ctx = context or ScanContext()
     scored: List[ScoredFinding] = []
 
-    for raw in findings:
-        rf = _coerce(raw)
-
+    for rf in deduplicate(_coerce(f) for f in findings):
         placeholder = is_placeholder(rf.matched_string, ctx.extra_placeholder_patterns)
         if placeholder and not ctx.keep_placeholders:
             continue  # suppressed entirely
@@ -276,10 +307,20 @@ def filter_and_score(
             rf.line_content, rf.matched_string, redacted, rf.start_col, rf.end_col
         )
 
-        exposure_phrase = (
-            "still in the working tree" if exposure == "working_tree"
-            else f"only in git history (commit {rf.commit_hash})"
-        )
+        if exposure == "working_tree":
+            exposure_phrase = "still in the working tree"
+            if rf.history_commits:
+                # Live AND committed: deleting the line is not enough, the
+                # blob stays reachable in history until it's purged.
+                exposure_phrase += (
+                    f" and committed to history (introduced in "
+                    f"{rf.history_commits[0]}, {len(rf.history_commits)} commit(s))"
+                )
+        else:
+            exposure_phrase = f"only in git history (commit {rf.commit_hash})"
+            if len(rf.history_commits) > 1:
+                exposure_phrase += f", seen in {len(rf.history_commits)} commits"
+
         rationale = (
             f"{severity.label} severity: {redacted} ({rf.detector_type}), "
             f"{exposure_phrase}. Score {points} from " + ", ".join(reasons) + "."
@@ -298,6 +339,8 @@ def filter_and_score(
             rationale=rationale,
             entropy_score=rf.entropy_score,
             file_class=file_class,
+            occurrences=rf.occurrences,
+            history_commits=rf.history_commits,
         ))
 
     scored = [s for s in scored if s.severity >= ctx.min_severity]
@@ -312,11 +355,23 @@ def generate_report(
     output_path: Optional[str] = None,
     use_color: Optional[bool] = None,
     target: str = "",
+    fix_enabled: bool = False,
+    home_url: Optional[str] = None,
 ) -> str:
     """
     Render scored findings. fmt is "terminal" | "json" | "html".
     Returns the rendered string; also writes it to output_path if given.
-    The actual rendering lives in reporters.py.
+
+    Terminal/json rendering lives in reporters.py, alongside the detection
+    engine at the repo root. HTML rendering lives in web/html_report.py and is
+    only imported here, lazily, when fmt="html" is actually requested -- so
+    nothing at the root has a hard import-time dependency on the web/
+    package (or on Flask, which web/app.py needs but this module doesn't).
+
+    fix_enabled (html only) turns on the one-click fix in the report's detail
+    panel, and home_url (html only) adds a link back to the scan form. Only
+    web/app.py passes either -- both need a live server behind the page,
+    which a report saved to disk doesn't have.
     """
     fmt = fmt.lower()
     if fmt in ("terminal", "text", "cli"):
@@ -324,7 +379,9 @@ def generate_report(
     elif fmt == "json":
         out = render_json(scored_findings)
     elif fmt == "html":
-        out = render_html(scored_findings, target=target)
+        from web.html_report import render_html
+        out = render_html(scored_findings, target=target, fix_enabled=fix_enabled,
+                          home_url=home_url)
     else:
         raise ValueError(f"Unknown report format {fmt!r} (use terminal|json|html)")
 

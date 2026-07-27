@@ -115,6 +115,27 @@ COMMON_WORDS = frozenset(
     }
 )
 
+# Values that FETCH a secret rather than BEING one. `os.environ["API_KEY"]` is
+# long, sits next to a suspicious variable name, and scores well over the
+# entropy threshold -- so without this, a codebase that has correctly moved its
+# secrets into environment variables gets flagged for the reference it left
+# behind. That is exactly backwards: it penalises the fix. A secret is a
+# literal, never an expression that looks one up.
+_ENV_REFERENCE_RE = re.compile(
+    r"""
+      os\.environ              # Python
+    | os\.getenv
+    | \bgetenv\s*\(            # C / PHP / Go
+    | process\.env\b           # Node
+    | \bENV\s*\[               # Ruby
+    | System\.getenv           # Java
+    | \$\{[^}]*\}              # ${VAR}      shell, compose, YAML
+    | \{\{[^}]*\}\}            # {{ var }}   templating
+    | <%=?[^%]*%>              # <%= var %>  ERB / EJS
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
 _HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?$")
 _UUID_RE = re.compile(
     r"^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
@@ -174,6 +195,8 @@ def _is_obvious_non_secret(value: str, min_length: int) -> bool:
     if _HEX_COLOR_RE.match(value):
         return True
     if _UUID_RE.match(value):
+        return True
+    if _ENV_REFERENCE_RE.search(value):
         return True
     if any(ch.isspace() for ch in value):
         # Real secrets don't contain whitespace. This is also what catches

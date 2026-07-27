@@ -21,7 +21,7 @@ This file owns exactly one thing: gluing the other four people's modules
 together in the right order with the right data shapes. It doesn't contain
 any detection or scoring logic itself -- that all belongs upstream.
 
-run_scan() is the single entry point both app.py (the Flask web app) and
+run_scan() is the single entry point both web/app.py (the Flask web app) and
 cli.py (optional command-line entry point) call, so there's only one place
 the pipeline order is ever defined.
 """

@@ -3,7 +3,7 @@ cli.py
 ------
 Lance's module: CLI & Orchestration (command-line entry point).
 
-The group pivoted to a Flask web app (app.py) as the primary interface, but
+The group pivoted to a Flask web app (web/app.py) as the primary interface, but
 this CLI is kept alongside it -- same run_scan() pipeline underneath, so
 it's useful for scripting/CI use and as a fallback if the web demo has
 issues on presentation day. Nothing here duplicates orchestration logic;

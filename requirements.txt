@@ -1,0 +1,16 @@
+# SecretSentry runtime dependencies.
+#   pip install -r requirements.txt
+
+# Web front end (app.py). Not needed for cli.py.
+Flask>=3.0,<4.0
+
+# gitignore-syntax matching for config/default_ignores.json and .sentryignore.
+# walker.py falls back to a reduced fnmatch matcher if this is missing, which
+# silently loses negation patterns (!keep-this) and ** globs -- so it is a real
+# dependency, not an optional one.
+pathspec>=0.12,<1.0
+
+# The test suite (tests/) uses only the standard library's unittest, so there is
+# no dev requirement to install:
+#     py -m unittest discover -s tests -v
+# pytest will also collect it as-is if you prefer that runner.

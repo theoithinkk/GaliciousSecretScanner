@@ -2,8 +2,10 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-test-repo/ 
-report.html 
-report.json 
-__pycache__/ 
-*.pyc 
+test-repo/
+
+# Generated reports, including the one `py scorer_reporter.py` writes when it
+# runs its built-in self-check.
+report.html
+report.json
+report_sample.html

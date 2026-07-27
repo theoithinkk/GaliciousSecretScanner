@@ -1,26 +1,41 @@
 """
-app.py
-------
+web/app.py
+----------
 Flask front end. Kept intentionally thin -- all it does is take the form
 submission, hand it to orchestrator.run_scan() (the exact same pipeline
 cli.py uses), and render the result.
 
 On a successful scan we return the full themed HTML report straight from
-scorer_reporter/reporters (the matrix-style page with severity tiles, sort,
-filter) instead of the old plain table, since that report is already a
+scorer_reporter/web.html_report (the matrix-style page with severity tiles,
+sort, filter) instead of the old plain table, since that report is already a
 complete standalone page. On error, we fall back to the form page with an
 error message.
+
+This file lives under web/ rather than the repo root, so the root directory
+shows only the detection/scoring engine (walker, pattern_detector,
+entropy_detector, scorer_reporter, ...) plus the CLI that drives it directly.
+Because of that, the imports below need the repo root on sys.path before they
+run -- see the block right after this docstring.
 """
 
 from __future__ import annotations
 
 import os
+import sys
+
+# Repo root (parent of this file's directory), so `import orchestrator` etc.
+# resolve regardless of whether this is launched as `py web/app.py` or
+# `py -m web.app`. Must run before any of the imports below.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
 from flask import Flask, jsonify, render_template, request, Response
 
 from orchestrator import run_scan
-from walker import WalkerError
+from walker import WalkerError, looksLikeGithubUrl
 from scorer_reporter import generate_report
+from web import fixer
 
 app = Flask(__name__)
 
@@ -49,8 +64,50 @@ def index():
     except Exception as e:  # last-resort guard so a bug doesn't crash the demo
         return render_template("index.html", error=f"Unexpected error: {e}")
 
-    report_html = generate_report(scored, fmt="html", target=target)
+    # The one-click fix edits files in the scanned directory, so it only makes
+    # sense for a local path. A GitHub URL is cloned to a temp dir that the
+    # walker deletes as soon as the scan finishes -- there'd be nothing left to
+    # fix, so don't offer a button that can't work.
+    fixable_target = bool(target) and not looksLikeGithubUrl(target) and os.path.isdir(target)
+
+    report_html = generate_report(scored, fmt="html", target=target,
+                                  fix_enabled=fixable_target, home_url="/")
     return Response(report_html, mimetype="text/html")
+
+
+@app.route("/api/fix", methods=["POST"])
+def api_fix():
+    """
+    Apply the one-click fix for a single finding.
+
+    The request carries only the finding's coordinates -- path, line, detector
+    type -- never the secret itself. fixer re-reads the file and re-runs the
+    detectors to find the value, so a file that changed since the scan makes
+    the fix refuse rather than corrupt something.
+
+    Same local-only posture as /api/browse: this writes to disk, so it assumes
+    server and target repo are the same machine. fixer.resolve_inside() is what
+    keeps a crafted file_path from escaping the scanned directory.
+    """
+    data = request.get_json(silent=True) or {}
+    target = (data.get("target") or "").strip()
+    file_path = (data.get("file_path") or "").strip()
+    detector_type = (data.get("detector_type") or "").strip()
+    line_number = data.get("line_number")
+
+    if not (target and file_path and detector_type):
+        return jsonify({"ok": False, "error": "missing target/file_path/detector_type"}), 400
+    if not isinstance(line_number, int) or line_number < 1:
+        return jsonify({"ok": False, "error": "line_number must be a positive integer"}), 400
+    if looksLikeGithubUrl(target) or not os.path.isdir(target):
+        return jsonify({"ok": False,
+                        "error": "fixes only apply to a local directory that still exists"}), 400
+
+    result = fixer.apply_fix(
+        target, file_path, line_number, detector_type,
+        in_history=bool(data.get("in_history")),
+    )
+    return jsonify(result.to_dict()), (200 if result.ok else 400)
 
 
 @app.route("/api/browse", methods=["GET"])

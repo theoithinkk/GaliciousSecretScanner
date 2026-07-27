@@ -43,6 +43,12 @@ class RawFinding:
     start_col: Optional[int] = None
     end_col: Optional[int] = None
 
+    # Filled in by scorer_reporter.deduplicate(), NOT by the detectors or the
+    # walker. Upstream always leaves these at their defaults; the dedup step
+    # rewrites them when it collapses several raw hits into one leak.
+    occurrences: int = 1                      # how many raw hits merged into this
+    history_commits: tuple = ()               # every commit this secret was seen in, oldest first
+
     @classmethod
     def from_detection(cls, detector_finding, walker_finding) -> "RawFinding":
         """
@@ -83,9 +89,26 @@ class ScoredFinding:
     entropy_score: Optional[float] = None
     file_class: str = "other"     # env | config | source | test | docs | other
 
+    # Dedup bookkeeping, so a reader can tell "one leak seen 40 times" apart
+    # from "40 separate leaks".
+    occurrences: int = 1
+    history_commits: tuple = ()
+
+    @property
+    def in_history(self) -> bool:
+        """
+        True if this secret exists in git history -- including when it is ALSO
+        still in the working tree. `exposure == "history_only"` answers a
+        narrower question (is it *only* in history), so remediation advice
+        should key off this instead: a live secret that is also committed
+        needs the history purged too, not just the file edited.
+        """
+        return bool(self.history_commits)
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["severity"] = self.severity.label
+        d["history_commits"] = list(self.history_commits)
         return d
 
 
