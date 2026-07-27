@@ -115,6 +115,12 @@ class TestAssignmentShapes(unittest.TestCase):
     def test_password_like_text_with_spaces_is_ignored(self):
         self.assertEqual(detect('message = "Changed Xanify Account Password"'), [])
 
+    def test_password_in_function_name_is_not_suspicious_context(self):
+        self.assertEqual(
+            detect('router.get("/changePassword", requireAuth, (req, res) => { })'),
+            []
+        )
+
     def test_columns_bracket_the_value(self):
         line = f'token = "{RANDOM_VALUE}"'
         hit = detect(line)[0]

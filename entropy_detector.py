@@ -185,6 +185,15 @@ def _has_suspicious_context(text: str, context_words: Iterable[str]) -> bool:
     return any(word in lowered for word in context_words)
 
 
+def _is_path_like_value(value: str) -> bool:
+    """Common quoted literals that look like paths/URL/route strings, not secrets."""
+    if value.startswith(('/', './', '../')):
+        return True
+    if value.startswith(('http://', 'https://')):
+        return True
+    return False
+
+
 def _is_obvious_non_secret(value: str, min_length: int) -> bool:
     """Cheap structural checks that rule a candidate out before we bother
     computing entropy at all."""
@@ -286,6 +295,9 @@ def detect(
 
             if _is_quoted_object_key(line, end):
                 continue  # ignore quoted object keys when scanning suspicious lines
+
+            if _is_path_like_value(value):
+                continue  # ignore quoted routes/URLs in suspicious lines
 
             finding = _score_candidate(value, start, end, threshold, min_length)
             if finding:
