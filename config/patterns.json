@@ -25,8 +25,8 @@
   },
   {
     "type": "GENERIC_PASSWORD",
-    "description": "Generic password assignment",
-    "regex": "(?:password|passwd|pwd)\\s*[:=]\\s*['\"](?P<value>[^'\"]{4,})['\"]",
+    "description": "Generic password assignment (real credential-style value, not a sentence)",
+    "regex": "(?:password|passwd|pwd)\\s*[:=]\\s*['\"](?P<value>[^\\s'\"]{4,64})['\"]",
     "flags": ["IGNORECASE"]
   },
   {
