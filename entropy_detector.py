@@ -215,6 +215,11 @@ def _extract_value(match: "re.Match[str]") -> Optional[Tuple[str, int, int]]:
     return None
 
 
+def _is_quoted_object_key(line: str, end: int) -> bool:
+    """Quoted strings followed immediately by ':' are likely object keys."""
+    return bool(re.match(r"\s*:\s*", line[end:]))
+
+
 def _score_candidate(
     value: str, start: int, end: int, threshold: float, min_length: int
 ) -> Optional[Finding]:
@@ -278,6 +283,9 @@ def detect(
 
             if any(s <= start < e or s < end <= e for s, e in consumed_spans):
                 continue  # already handled in pass 1
+
+            if _is_quoted_object_key(line, end):
+                continue  # ignore quoted object keys when scanning suspicious lines
 
             finding = _score_candidate(value, start, end, threshold, min_length)
             if finding:

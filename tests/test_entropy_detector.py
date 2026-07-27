@@ -109,6 +109,12 @@ class TestAssignmentShapes(unittest.TestCase):
         # not one from each extraction pass.
         self.assertEqual(len(detect(f'secret_token = "{RANDOM_VALUE}"')), 1)
 
+    def test_quoted_object_key_is_not_flagged_as_a_secret(self):
+        self.assertEqual(detect('"password": "Changed Xanify Account Password"'), [])
+
+    def test_password_like_text_with_spaces_is_ignored(self):
+        self.assertEqual(detect('message = "Changed Xanify Account Password"'), [])
+
     def test_columns_bracket_the_value(self):
         line = f'token = "{RANDOM_VALUE}"'
         hit = detect(line)[0]
