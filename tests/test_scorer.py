@@ -68,6 +68,17 @@ class TestIsPlaceholder(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertFalse(is_placeholder(value))
 
+    def test_password_workflow_labels_are_not_reported_as_secrets(self):
+        for value in (
+            "change_password",
+            "new_password",
+            "reset_password",
+            "update_password",
+            "password_change",
+        ):
+            with self.subTest(value=value):
+                self.assertTrue(is_placeholder(value))
+
     def test_low_character_variety_is_a_placeholder(self):
         self.assertTrue(is_placeholder("abababababab"))
 

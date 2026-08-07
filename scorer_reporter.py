@@ -83,6 +83,27 @@ def is_placeholder(secret: str, extra_patterns: Iterable[str] = ()) -> bool:
     """
     if not secret:
         return True
+
+    s = secret.strip().lower()
+
+    # Password workflow labels are not secrets; they are UI/form-field names or
+    # human-readable labels, not literal credentials. Suppress them before they
+    # reach the score/report layer.
+    workflow_patterns = [
+        r"^changeme$",
+        r"^change[_-]?password$",
+        r"^new[_-]?password$",
+        r"^reset[_-]?password$",
+        r"^update[_-]?password$",
+        r"^confirm[_-]?password$",
+        r"^current[_-]?password$",
+        r"^old[_-]?password$",
+        r"^password[_-]?(change|reset|update|new|confirm|current|old)$",
+        r"^password[_-]?changed$",
+    ]
+    if any(re.fullmatch(p, s) for p in workflow_patterns):
+        return True
+
     if _PLACEHOLDER_RE.search(secret):
         return True
     for pat in extra_patterns:
