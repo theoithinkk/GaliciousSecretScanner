@@ -138,12 +138,6 @@ The HTML report renders the same finding with the file path, line number, a colo
 ## Future Improvements
 Full detail and exact files to touch for each item are in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-| Feature | What / how |
-|---|---|
-| Pre-commit hook + `--staged` | `cli.py --staged` scans only the staged git diff, shipped as a `.pre-commit-hooks.yaml` entry |
-| Baseline / allowlist file | Fingerprint each finding (`sha256(file + type + redacted)`), store accepted ones in `.sentrybaseline`, skip matches on future scans |
-| Remediation guidance per finding | A per-detector-type lookup table of remediation steps on `ScoredFinding`, shown in all three report formats |
-
 ## Ethical Disclaimer
 <p align="justify">
 This tool was developed for educational purposes only. It must only be used in authorized and controlled testing environments. Unauthorized testing against real systems, public websites, or third-party services is strictly prohibited.
