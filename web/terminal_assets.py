@@ -123,9 +123,9 @@ TERMINAL_CSS = """
   .fixbtn.ghost:hover:not(:disabled) { color:var(--green); border-color:var(--green); }
   .term-hint { font-size:.66rem; color:var(--muted); letter-spacing:.06em; }
   @media (max-width:560px) { .term-body .k { width:auto; display:block; } }
+  /* The generic "kill every animation" rule lives once in report_assets.py's
+     BASE_CSS; only the panel's own exceptions belong here. */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation:none !important; scroll-behavior:auto; }
-    .boot .ln { width:auto; } .finding { opacity:1; transform:none; }
     .term.open .term-win { opacity:1; clip-path:none; }
   }
 """
@@ -156,6 +156,13 @@ TERMINAL_JS = """
       return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
       });
+    }
+    // remediation_steps rides on the card as a JSON array (html_report.py).
+    // A malformed attribute must not take the whole detail panel down with it.
+    function parseSteps(raw) {
+      if (!raw) return [];
+      try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; }
+      catch (e) { return []; }
     }
 
     // Colour a few fields by what they actually mean, the same way the
@@ -198,7 +205,7 @@ TERMINAL_JS = """
       (function next() {
         if (i >= steps.length) { if (done) done(); return; }
         steps[i++]();
-        setTimeout(next, 42);
+        setTimeout(next, 12);   // readable as a whole, still reads as output
       })();
     }
 
@@ -230,15 +237,29 @@ TERMINAL_JS = """
       steps.push(function () { line('  ' + esc(d.rationale), 'dim'); });
       steps.push(function () { line('[!] remediation', 'head'); });
 
-      // Rotation always comes first. A code change does not un-leak a
-      // credential that has already been exposed.
-      steps.push(function () {
-        line('  1. ROTATE this credential now. It must be assumed compromised.', 'warn'); });
-      if (d.inhistory === '1') {
+      // The per-detector steps remediation.py computed for this finding, in
+      // its order: rotation first, history purge last. Read off the card
+      // rather than rebuilt here, so the panel says exactly what the terminal,
+      // JSON and SARIF reports say -- one source of remediation truth.
+      const fix = parseSteps(d.remediation);
+      if (fix.length) {
+        fix.forEach(function (step, i) {
+          // Step 1 is the rotation in every entry in the table, and it is the
+          // only one that actually ends the exposure -- so it gets the warn
+          // colour and the rest are ordinary output.
+          steps.push(function () {
+            line('  ' + (i + 1) + '. ' + esc(step), i === 0 ? 'warn' : 'dim'); });
+        });
+      } else {
+        // A report rendered without orchestrator.run_scan() (so without
+        // remediation.annotate()) still gets the one instruction that is true
+        // of every finding.
         steps.push(function () {
-          line('  2. It is in git history. Editing the file does NOT remove it.', 'warn'); });
-        steps.push(function () {
-          line('     Purge with git-filter-repo after rotating.', 'dim'); });
+          line('  1. ROTATE this credential now. It must be assumed compromised.', 'warn'); });
+        if (d.inhistory === '1') {
+          steps.push(function () {
+            line('  2. It is in git history. Editing the file does NOT remove it.', 'warn'); });
+        }
       }
       steps.push(function () { line('&nbsp;'); });
 
@@ -290,7 +311,10 @@ TERMINAL_JS = """
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             target: cfg.target, file_path: d.file,
-            line_number: +d.line, detector_type: d.type
+            line_number: +d.line, detector_type: d.type,
+            // Without this the fix reports success on a committed secret
+            // without ever saying the blob is still reachable in history.
+            in_history: d.inhistory === '1'
           })
         });
         const data = await res.json();

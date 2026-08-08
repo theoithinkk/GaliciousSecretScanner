@@ -40,11 +40,8 @@ defensible out loud in a code review.
 
 from __future__ import annotations
 
-import argparse
-import json
 import os
 import re
-import sys
 from typing import Iterable, List, Optional, Union
 
 import live_check
@@ -440,6 +437,7 @@ def generate_report(
     target: str = "",
     fix_enabled: bool = False,
     home_url: Optional[str] = None,
+    suppressed: int = 0,
 ) -> str:
     """
     Render scored findings. fmt is "terminal" | "json" | "sarif" | "html".
@@ -452,9 +450,10 @@ def generate_report(
     package (or on Flask, which web/app.py needs but this module doesn't).
 
     fix_enabled (html only) turns on the one-click fix in the report's detail
-    panel, and home_url (html only) adds a link back to the scan form. Only
-    web/app.py passes either -- both need a live server behind the page,
-    which a report saved to disk doesn't have.
+    panel, home_url (html only) adds a link back to the scan form, and
+    suppressed (html only) states how many findings a baseline hid. Only
+    web/app.py passes any of them -- the first two need a live server behind
+    the page, which a report saved to disk doesn't have.
     """
     fmt = fmt.lower()
     if fmt in ("terminal", "text", "cli"):
@@ -466,7 +465,7 @@ def generate_report(
     elif fmt == "html":
         from web.html_report import render_html
         out = render_html(scored_findings, target=target, fix_enabled=fix_enabled,
-                          home_url=home_url)
+                          home_url=home_url, suppressed=suppressed)
     else:
         raise ValueError(
             f"Unknown report format {fmt!r} (use terminal|json|sarif|html)"
@@ -480,10 +479,6 @@ def generate_report(
 
 # CI / pre-commit gate
 
-# Accepts severity names (and "none" = never fail the build).
-_SEVERITY_BY_NAME = {s.name.lower(): s for s in Severity}
-
-
 def exit_code(scored: List[ScoredFinding], fail_on: Union[str, Severity, None]) -> int:
     """
     Process exit code for use as a CI / pre-commit gate.
@@ -495,129 +490,7 @@ def exit_code(scored: List[ScoredFinding], fail_on: Union[str, Severity, None]) 
     if fail_on is None:
         return 0
     if isinstance(fail_on, str):
-        key = fail_on.lower()
-        if key == "none":
+        if fail_on.strip().lower() == "none":
             return 0
-        if key not in _SEVERITY_BY_NAME:
-            raise ValueError(
-                f"Unknown --fail-on value {fail_on!r} "
-                f"(use none|{'|'.join(s.name.lower() for s in Severity)})"
-            )
-        fail_on = _SEVERITY_BY_NAME[key]
+        fail_on = Severity.from_name(fail_on)   # raises ValueError on a typo
     return 1 if any(s.severity >= fail_on for s in scored) else 0
-
-
-def main(argv: Optional[List[str]] = None) -> int:
-    """
-    CLI entrypoint. Reads a JSON list of RAW findings (the merged output of
-    Persons 2+3, produced by the orchestrator), scores them, renders a
-    report, and returns an exit code driven by --fail-on so this can gate a
-    CI pipeline or pre-commit hook.
-
-    Run with no findings file to execute the built-in self-check/demo.
-    """
-    p = argparse.ArgumentParser(
-        prog="scorer_reporter",
-        description="Filter, score, and report secret-scan findings.",
-    )
-    p.add_argument("findings", nargs="?",
-                   help="JSON file of raw findings; omit to run the built-in demo")
-    p.add_argument("--format", default="terminal",
-                   choices=["terminal", "json", "sarif", "html"],
-                   help="report format")
-    p.add_argument("-o", "--output", help="write the report to this file")
-    p.add_argument("--fail-on", default="none",
-                   choices=["none"] + [s.name.lower() for s in Severity],
-                   help="exit 1 if any finding is at/above this severity (default: none)")
-    p.add_argument("--min-severity", default="low",
-                   choices=[s.name.lower() for s in Severity],
-                   help="drop findings below this severity from the report")
-    args = p.parse_args(argv)
-
-    if not args.findings:
-        _demo()
-        return 0
-
-    try:
-        with open(args.findings, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-    except (OSError, json.JSONDecodeError) as e:
-        print(f"error: could not read findings file: {e}", file=sys.stderr)
-        return 2
-    if not isinstance(raw, list):
-        print("error: findings file must contain a JSON list", file=sys.stderr)
-        return 2
-
-    ctx = ScanContext(min_severity=_SEVERITY_BY_NAME[args.min_severity])
-    scored = filter_and_score(raw, ctx)
-    report = generate_report(scored, args.format, args.output)
-
-    # Print to console when there's no file target, or when the format is the
-    # human-readable terminal one (so CI logs still show the summary).
-    if not args.output or args.format == "terminal":
-        print(report)
-    elif args.output:
-        print(f"wrote {args.format} report to {args.output} ({len(scored)} finding(s))")
-
-    return exit_code(scored, args.fail_on)
-
-
-# Self-check  (run: py scorer_reporter.py)
-
-def _demo() -> None:
-    # Fake but realistic-shaped key. (The canonical AKIAIOSFODNN7EXAMPLE is
-    # intentionally NOT used here: it contains "EXAMPLE" and would be -- correctly
-    # -- suppressed by the placeholder filter.)
-    live_aws = "AKIA3RJQ7KZ2NDLPWXYZ"
-    raw = [
-        # critical: AWS access key in a live .env file
-        RawFinding("AWS_ACCESS_KEY", live_aws, ".env", 3,
-                   line_content=f'aws_access_key_id={live_aws}'),
-        # placeholder -> must be suppressed
-        RawFinding("GENERIC_API_KEY", "YOUR_API_KEY_HERE", "config/settings.py", 10,
-                   line_content='api_key = "YOUR_API_KEY_HERE"'),
-        # same shape but in a test path -> downgraded
-        RawFinding("AWS_ACCESS_KEY", "AKIAI44QH8DHBZZZZZZZ", "tests/test_auth.py", 7,
-                   line_content='key = "AKIAI44QH8DHBZZZZZZZ"'),
-        # history-only high-entropy generic
-        RawFinding("HIGH_ENTROPY", "Zx9Qk2LpN8vRt5Wm3Yb7Jc1Fd6Hs4Ae0", "auth.py", 42,
-                   commit_hash="a1b2c3d4e5f6", entropy_score=4.7,
-                   line_content='custom_token = "Zx9Qk2LpN8vRt5Wm3Yb7Jc1Fd6Hs4Ae0"'),
-    ]
-
-    scored = filter_and_score(raw)
-
-    # Placeholder was dropped.
-    assert len(scored) == 3, f"expected 3 kept, got {len(scored)}"
-    assert all("YOUR_API_KEY" not in s.redacted for s in scored)
-
-    by_file = {s.file_path: s for s in scored}
-    # Live .env AWS key is the worst.
-    assert by_file[".env"].severity == Severity.CRITICAL
-    # Same key type in tests/ scores strictly lower.
-    assert by_file["tests/test_auth.py"].severity < by_file[".env"].severity
-    # History finding is labeled, not dropped.
-    assert by_file["auth.py"].exposure == "history_only"
-    # Sorted worst-first.
-    assert scored[0].severity >= scored[-1].severity
-
-    # No output leaks a full secret -- check every renderer.
-    for fmt in ("terminal", "json", "sarif", "html"):
-        text = generate_report(scored, fmt, use_color=False)
-        assert live_aws not in text, f"raw secret leaked into {fmt} output"
-
-    # Gate behavior: there IS a critical here, so --fail-on critical trips.
-    assert exit_code(scored, "critical") == 1
-    assert exit_code(scored, "none") == 0
-    assert exit_code([], "low") == 0            # nothing found -> pass
-    # Threshold above everything present -> pass (no finding reaches it).
-    high_only = [s for s in scored if s.severity < Severity.CRITICAL]
-    assert exit_code(high_only, "critical") == 0
-
-    generate_report(scored, "html", output_path="report_sample.html")
-    print(generate_report(scored, "terminal", use_color=True))
-    print("\nself-check passed; wrote report_sample.html")
-
-
-if __name__ == "__main__":
-    sys.exit(main())

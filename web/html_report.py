@@ -22,7 +22,7 @@ import json
 from typing import List, Optional
 
 from models import Severity, ScoredFinding
-from web.report_assets import REPORT_CSS, REPORT_JS
+from web.report_assets import BASE_CSS, BASE_JS, REPORT_CSS, REPORT_JS
 from web.terminal_assets import TERMINAL_CSS, TERMINAL_JS
 
 try:
@@ -91,8 +91,15 @@ def _finding_card(index: int, s: ScoredFinding, fix_enabled: bool) -> str:
         f'data-inhistory="{"1" if s.in_history else "0"}" '
         f'data-fixable="{"1" if (fixable and fix_enabled) else "0"}" '
         f'data-fixreason="{html.escape(fix_reason, quote=True)}" '
+        # The steps remediation.annotate() computed, carried to the detail
+        # panel as-is. Without this the panel would have to re-derive advice
+        # the pipeline already produced, and the HTML report would be the one
+        # format that disagrees with the other three.
+        f'data-remediation="{html.escape(json.dumps(s.remediation_steps), quote=True)}" '
         f'data-ent="{s.entropy_score or 0}" '
-        f'style="animation-delay:{index * 0.05:.2f}s">'
+        # Capped: at 0.05s each, a 40-finding report animated for two seconds
+        # before the last one was readable.
+        f'style="animation-delay:{min(index, 10) * 0.03:.2f}s">'
         f'<div class="fhead">'
         f'<span class="badge {sev}">{s.severity.label.upper()}</span>'
         f'<span class="floc">{html.escape(s.file_path)}:{s.line_number}</span>'
@@ -116,7 +123,7 @@ def _finding_card(index: int, s: ScoredFinding, fix_enabled: bool) -> str:
 
 def render_html(scored: List[ScoredFinding], target: str = "",
                 fix_enabled: bool = False, fix_api: str = "/api/fix",
-                home_url: Optional[str] = None) -> str:
+                home_url: Optional[str] = None, suppressed: int = 0) -> str:
     """
     Render the standalone report page.
 
@@ -125,24 +132,33 @@ def render_html(scored: List[ScoredFinding], target: str = "",
     has no server behind it and a button that always failed would be worse
     than a button that explains why it isn't there.
 
-    home_url adds a "new scan" link back to the form. Same reasoning: only the
-    served page gets one, since a saved file has nowhere to go back to. It is
-    kept separate from fix_enabled because web/app.py disables the fix for a
-    GitHub-URL scan while still wanting the link.
+    home_url adds a "new scan" link back to the form. It doubles as the
+    "is a server behind this page" flag, which is what gates the export links
+    and the accept-all button too -- both are HTTP calls, and a report opened
+    from disk has nothing to call. It is kept separate from fix_enabled
+    because web/app.py disables the fix for a GitHub-URL scan while still
+    wanting the link.
+
+    suppressed is how many findings a baseline dropped before rendering. It is
+    stated on the page rather than left implicit: a scan that silently hides
+    findings is exactly how a baseline masks a real regression.
     """
+    served = home_url is not None
     counts = {sev: 0 for sev in Severity}
     for s in scored:
         counts[s.severity] += 1
     order = (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW)
 
+    # Every line here states something actually true of this report. The old
+    # version printed "loading signature library ... [ OK ]" and "decrypting
+    # findings ... [ OK ]" unconditionally -- fabricated status output, which
+    # is a bad habit anywhere and a worse one in a security tool.
     boot_lines = [
-        "> galicious :: initializing scan engine",
-        "> loading signature library ............. [ OK ]",
-        "> decrypting findings ................... [ OK ]",
-        f"> {len(scored)} threat(s) identified  "
+        "> galicious :: scan complete",
+        f"> {len(scored)} finding(s)  "
         f"[ {counts[Severity.CRITICAL]} CRIT / {counts[Severity.HIGH]} HIGH / "
         f"{counts[Severity.MEDIUM]} MED / {counts[Severity.LOW]} LOW ]",
-        "> render: html // secrets: MASKED // status: LOCKED",
+        "> secrets: MASKED // rotate before you clean up",
     ]
     boot_html = "".join(
         f'<div class="ln" style="--w:{len(t)}ch;animation-delay:{i * 0.45:.2f}s">'
@@ -162,8 +178,27 @@ def render_html(scored: List[ScoredFinding], target: str = "",
                      or '<div class="empty">no secrets found // all clear '
                         '<span class="cursor"></span></div>')
 
-    config = _json_for_script({"api": fix_api, "target": target,
-                               "fixEnabled": bool(fix_enabled)})
+    config = _json_for_script({"api": fix_api, "baselineApi": "/api/baseline",
+                               "target": target, "fixEnabled": bool(fix_enabled)})
+
+    # Export links and the accept-all button are server-backed, so they only
+    # appear on the served page. The routes are web/app.py's; a saved report
+    # gets neither rather than dead buttons.
+    exports = (
+        '<span class="sep"></span><span class="lbl">export //</span>'
+        '<a class="sortbtn" href="/report.json" download>json</a>'
+        '<a class="sortbtn" href="/report.sarif" download>sarif</a>'
+        '<a class="sortbtn" href="/report.html" download>html</a>'
+    ) if served else ''
+
+    # Writing a baseline needs a local directory to write it into, which is
+    # the same condition the one-click fix runs under -- a cloned GitHub URL
+    # is deleted the moment the scan ends.
+    baseline_btn = (
+        f'<span class="sep"></span>'
+        f'<button class="sortbtn" id="baselineBtn" data-count="{len(scored)}"'
+        f'{" disabled" if not scored else ""}>accept all</button>'
+    ) if (served and fix_enabled) else ''
 
     terminal = (
         '<div class="term" id="term" role="dialog" aria-modal="true" '
@@ -188,7 +223,7 @@ def render_html(scored: List[ScoredFinding], target: str = "",
         '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         '<title>GALICIOUS SCANNER</title>'
-        '<style>' + REPORT_CSS + TERMINAL_CSS + '</style>'
+        '<style>' + BASE_CSS + REPORT_CSS + TERMINAL_CSS + '</style>'
         '</head><body>'
         '<canvas id="matrix"></canvas><div class="scanlines"></div>'
         '<main>'
@@ -197,12 +232,15 @@ def render_html(scored: List[ScoredFinding], target: str = "",
         '<h1 class="glitch" data-text="GALICIOUS SCANNER">GALICIOUS SCANNER</h1>'
         '<div class="sub">threat scan report <span class="cursor"></span></div>'
         + (f'<div class="target-line">> target: {html.escape(target)}</div>' if target else '')
+        + (f'<div class="suppressed-line">> {suppressed} finding(s) suppressed by '
+           f'.sentrybaseline</div>' if suppressed else '')
         + f'<div class="cards">{cards}</div>'
         '<div class="toolbar"><span class="lbl">sort //</span>'
         '<button class="sortbtn active" data-sort="sev">severity</button>'
         '<button class="sortbtn" data-sort="file">file</button>'
         '<button class="sortbtn" data-sort="ent">entropy</button>'
-        f'<span class="count"><b id="shown">{len(scored)}</b> shown '
+        + exports + baseline_btn
+        + f'<span class="count"><b id="shown">{len(scored)}</b> shown '
         '&middot; click a tile to filter &middot; click a finding to inspect</span></div>'
         f'<div class="findings" id="findings">{findings_html}</div>'
         '<footer>[ secrets masked ] rotate flagged credentials, then purge from source + history '
@@ -210,6 +248,6 @@ def render_html(scored: List[ScoredFinding], target: str = "",
         '</main>'
         + terminal
         + f'<script>window.SENTRY={config};</script>'
-        + '<script>' + REPORT_JS + TERMINAL_JS + '</script>'
+        + '<script>' + BASE_JS + REPORT_JS + TERMINAL_JS + '</script>'
         '</body></html>'
     )

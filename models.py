@@ -23,6 +23,24 @@ class Severity(IntEnum):
     def label(self) -> str:
         return self.name.capitalize()
 
+    @classmethod
+    def from_name(cls, name: str) -> "Severity":
+        """
+        Look up a severity by name, case-insensitively ("high" -> HIGH).
+
+        Lives here rather than as a lookup dict in each caller: cli.py, the
+        scorer's exit_code(), and the web form all turn the same user-supplied
+        string into the same Severity, and three copies is three chances for
+        one of them to accept a spelling the others reject.
+        """
+        try:
+            return cls[name.strip().upper()]
+        except KeyError:
+            raise ValueError(
+                f"Unknown severity {name!r} "
+                f"(use {'|'.join(s.name.lower() for s in cls)})"
+            ) from None
+
 
 @dataclass
 class RawFinding:

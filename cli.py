@@ -33,8 +33,6 @@ from models import ScanContext, Severity
 
 import argparse
 
-_SEVERITY_BY_NAME = {s.name.lower(): s for s in Severity}
-
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -151,7 +149,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
 
     ctx = ScanContext(
-        min_severity=_SEVERITY_BY_NAME[args.min_severity],
+        min_severity=Severity.from_name(args.min_severity),
         verify_live=args.verify_live,
     )
 

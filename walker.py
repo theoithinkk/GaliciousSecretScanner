@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from collections import namedtuple
 from typing import Iterable, Iterator, List, Optional
@@ -25,6 +26,23 @@ BINARY_SNIFF_BYTES = 8192
 
 class WalkerError(Exception):
     """Expected failure conditions (bad path, bad URL, no git, etc)."""
+
+
+# Temp clones, drained once at exit. ONE handler rather than one registration
+# per clone: walk() removes each directory in its own `finally`, but a caller
+# that abandons the generator early never reaches it, so this stays as the
+# backstop -- and registering per clone grew the handler list for the lifetime
+# of a long-running server.
+_TEMP_CLONES = set()
+
+
+def _dropTempClones() -> None:
+    for path in list(_TEMP_CLONES):
+        shutil.rmtree(path, ignore_errors=True)
+    _TEMP_CLONES.clear()
+
+
+atexit.register(_dropTempClones)
 
 def walk(
     path_or_url: str,
@@ -60,6 +78,7 @@ def walk(
     finally:
         if isTempClone:
             shutil.rmtree(repoPath, ignore_errors=True)
+            _TEMP_CLONES.discard(repoPath)
 
 
 # resolving input: local path vs github url
@@ -84,7 +103,7 @@ def cloneToTemp(url: str) -> str:
         raise WalkerError("git isn't installed / not on PATH, can't clone a GitHub URL")
 
     tmpDir = tempfile.mkdtemp(prefix="secretsentry_")
-    atexit.register(shutil.rmtree, tmpDir, ignore_errors=True)
+    _TEMP_CLONES.add(tmpDir)
 
     try:
         subprocess.run(
@@ -138,6 +157,15 @@ def buildIgnoreSpec(
 
     if hasPathspec:
         return pathspec.PathSpec.from_lines("gitignore", patterns)
+
+    # Not a silent downgrade. The fallback can't do negation (!keep-this) or **
+    # globs, so the same command scans DIFFERENT FILES here than on a machine
+    # with pathspec installed. A scanner that quietly changes what it scans is
+    # worse than a noisy one, so this says so every time it happens.
+    print("warning: pathspec is not installed, so ignore rules are matched with "
+          "a reduced matcher that cannot handle negation (!) or ** patterns -- "
+          "results WILL differ from a normal install. Fix with: "
+          "pip install -r requirements.txt", file=sys.stderr)
     return FnmatchFallbackSpec(patterns)
 
 
