@@ -34,6 +34,7 @@ from flask import Flask, jsonify, render_template, request, Response
 
 from orchestrator import run_scan
 from walker import WalkerError, looksLikeGithubUrl
+from models import ScanContext
 from scorer_reporter import generate_report
 from web import fixer
 
@@ -48,6 +49,9 @@ def index():
     target = (request.form.get("target") or "").strip()
     history = "history" in request.form
     full_scan = request.form.get("scan_mode") == "full"
+    # Unticked by default, and it needs to stay that way -- this is the one
+    # option that puts candidate secrets on the network. See live_check.py.
+    verify_live = "verify_live" in request.form
 
     if not target:
         return render_template(
@@ -56,7 +60,8 @@ def index():
         )
 
     try:
-        scored = run_scan(target, history=history, full_scan=full_scan)
+        scored = run_scan(target, history=history, full_scan=full_scan,
+                          context=ScanContext(verify_live=verify_live))
     except WalkerError as e:
         # Expected failure conditions from the walker (bad path, bad URL,
         # git missing, clone failed, etc) -- show the message, don't 500.

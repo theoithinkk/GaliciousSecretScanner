@@ -11,8 +11,8 @@ of each other.
 | # | Feature | Status |
 |---|---|---|
 | 0 | One-click fix | **Done** -- see below |
-| 1 | Verified-live checking (3-4 providers) | Not started |
-| 2 | SARIF output | Not started |
+| 1 | Verified-live checking (3-4 providers) | **Done** -- see below |
+| 2 | SARIF output | **Done** -- see below |
 | 3 | Pre-commit hook + `--staged` | Not started |
 | 4 | Baseline / allowlist file | Not started |
 | 5 | Remediation guidance per finding | Not started |
@@ -57,7 +57,31 @@ mini-feature):
 
 ---
 
-## 1. Verified-live checking for 3-4 providers
+## 1. Verified-live checking for 3-4 providers -- DONE
+
+**Where it landed:**
+- [`live_check.py`](../live_check.py) -- all four providers behind one
+  `verify()` call returning True / False / None. Every provider funnels
+  through a single `_http()` so the suite has one seam to patch. AWS needs
+  SigV4, hand-rolled on `hmac`/`hashlib` rather than adding botocore for one
+  signature.
+- [`scorer_reporter.py`](../scorer_reporter.py) -- `ScanContext.verify_live`
+  gates it; a confirmed-live finding gets +25 and a confirmed-dead one is
+  capped at 10 points, which floors it at LOW. The rationale spells out which
+  of the three verdicts a reader is looking at.
+- [`cli.py`](../cli.py) `--verify-live`, plus a checkbox on the web scan form.
+- [`tests/test_live_check.py`](../tests/test_live_check.py) -- 31 tests, no
+  sockets. The SigV4 HMAC chain is pinned to AWS's published worked example,
+  since a mocked provider can't tell us the signature is right.
+
+**What's still open on it:**
+- An AWS key is only verifiable when its secret half is in the same file.
+  Pairing across files, or against `~/.aws/credentials`, isn't attempted.
+- No concurrency: findings are verified one at a time. Fine for a demo repo,
+  slow if someone points it at something with hundreds of hits.
+- Nothing caches a verdict, so the same key in ten files is ten requests.
+
+**Original entry, for context:**
 
 **Why:** this is the honest answer to "how is this not redundant with
 GitHub's own secret scanning." GitHub's push protection let every fabricated
@@ -105,7 +129,31 @@ disk or to a report, and make sure the opt-in is genuinely opt-in.
 
 ---
 
-## 2. SARIF output
+## 2. SARIF output -- DONE
+
+**Where it landed:**
+- [`reporters.py`](../reporters.py) -- `render_sarif()`, next to the terminal
+  and JSON renderers. Rule descriptions are read back out of
+  `config/patterns.json` so they can't drift from what the detectors match.
+- [`cli.py`](../cli.py) `--format sarif`, and a `fmt == "sarif"` branch in
+  `generate_report`.
+- [`.github/workflows/secret-scan.yml`](../.github/workflows/secret-scan.yml)
+  -- runs the suite, scans this repo, uploads via
+  `github/codeql-action/upload-sarif`.
+- [`tests/test_sarif.py`](../tests/test_sarif.py) -- 18 tests covering the
+  things Code Scanning silently rejects an upload over: unresolvable ruleIds,
+  backslashed or absolute URIs, `startLine` below 1.
+
+Two details that aren't obvious from the spec and cost time if missed:
+`security-severity` on the rule (not our severity band) is what GitHub
+buckets alerts by, and `partialFingerprints` is what stops an alert being
+closed and reopened every time a line number moves.
+
+**Still open:** the output isn't validated against the SARIF JSON schema in
+the suite -- that would mean a new dependency and a vendored 300KB schema.
+The upload step in CI is the real check.
+
+**Original entry, for context:**
 
 **Why:** SARIF (Static Analysis Results Interchange Format) is what GitHub
 Code Scanning ingests. A finding uploaded in this format shows up in the

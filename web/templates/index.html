@@ -321,6 +321,17 @@
         Scan Git History
       </label>
 
+      <label class="toggle-row" for="verify_live">
+        <input type="checkbox" id="verify_live" name="verify_live">
+        <span class="swatch"></span>
+        Verify Live Credentials
+      </label>
+      <div class="m-desc" style="margin:-4px 0 0 34px">
+        Asks AWS, GitHub, Stripe and Slack whether each matching secret still
+        works. This sends the candidate secret to that provider over the
+        network, so leave it off unless you mean it.
+      </div>
+
       <button type="submit" class="scan-btn" id="scanBtn">Run Scan</button>
     </div>
   </form>

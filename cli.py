@@ -10,8 +10,9 @@ issues on presentation day. Nothing here duplicates orchestration logic;
 it's a thin argparse wrapper around orchestrator.run_scan().
 
 Usage:
-    python cli.py <path-or-url> [--history] [--format terminal|json|html]
+    python cli.py <path-or-url> [--history] [--format terminal|json|sarif|html]
                   [-o OUTPUT] [--fail-on none|low|medium|high|critical]
+                  [--verify-live]
 """
 
 from __future__ import annotations
@@ -40,8 +41,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="also scan git history for secrets that were added then removed",
     )
     p.add_argument(
-        "--format", default="terminal", choices=["terminal", "json", "html"],
-        help="report format (default: terminal)",
+        "--format", default="terminal",
+        choices=["terminal", "json", "sarif", "html"],
+        help="report format (default: terminal). sarif uploads to GitHub Code Scanning",
+    )
+    p.add_argument(
+        "--verify-live", action="store_true",
+        help="ask the provider whether each AWS/GitHub/Stripe/Slack secret still "
+             "works. This sends the candidate secret to that provider over the "
+             "network, so it stays off unless you ask for it",
     )
     p.add_argument("-o", "--output", help="write the report to this file")
     p.add_argument(
@@ -84,7 +92,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"error: could not read --ignore-file: {e}", file=sys.stderr)
         return 2
 
-    ctx = ScanContext(min_severity=_SEVERITY_BY_NAME[args.min_severity])
+    ctx = ScanContext(
+        min_severity=_SEVERITY_BY_NAME[args.min_severity],
+        verify_live=args.verify_live,
+    )
 
     try:
         scored = run_scan(
