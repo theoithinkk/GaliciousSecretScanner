@@ -97,6 +97,12 @@ def resolve_inside(root: str, relative: str) -> str:
     target. Symlinks are resolved before the check, not after.
     """
     root_real = os.path.realpath(root)
+    # Treat a backslash as a separator on every platform. This path arrives
+    # over HTTP from a client that need not be running the same OS as the
+    # server, and on Linux a backslash is an ordinary filename character, so
+    # "..\..\etc\passwd" would sail past this check as one odd filename
+    # instead of being recognised as the traversal attempt it is.
+    relative = relative.replace("\\", os.sep)
     target = os.path.realpath(os.path.join(root_real, relative))
     if target != root_real and not target.startswith(root_real + os.sep):
         raise FixError("refusing to touch a path outside the scanned directory")

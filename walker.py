@@ -148,7 +148,11 @@ class FnmatchFallbackSpec:
         self.patterns = [p for p in patterns if p]
 
     def match_file(self, relPath: str) -> bool:
-        norm = relPath.replace(os.sep, "/")
+        # Backslash, not os.sep. On Windows the two are the same thing, but on
+        # Linux os.sep is "/" and a Windows-style path passes through
+        # unnormalised, so "node_modules\pkg\index.js" dodges every directory
+        # pattern in the ignore list.
+        norm = relPath.replace("\\", "/")
         for pat in self.patterns:
             patNorm = pat.rstrip("/")
             if self.fnmatch.fnmatch(norm, patNorm) or self.fnmatch.fnmatch(norm, f"*/{patNorm}"):
