@@ -18,7 +18,7 @@
 
 ---
 
-## Description
+## Tool Name and Description
 <p align="justify">
 Galicious Secret Scanner scans a local folder or a GitHub repo for exposed secrets. Two detection engines feed a single scoring and reporting pipeline. The first is a regex signature library for known formats such as AWS, Stripe, GitHub, Slack, JWTs, private keys and database connection strings. The second is a Shannon-entropy fallback for custom tokens that don't match any known shape. Every finding is deduplicated, scored, redacted, and given a plain-language reason. No output, in any format, ever contains a full secret.
 </p>
