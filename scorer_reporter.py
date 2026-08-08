@@ -24,9 +24,14 @@ What this module is responsible for (and the upstream modules are NOT):
 - A plain-language rationale per finding, so a reviewer never has to reverse
   engineer the score.
 
-Data shapes live in models.py; the three renderers (terminal, JSON, HTML)
-live in reporters.py; collapsing duplicate hits into one leak lives in
-dedup.py. This file is just the scoring logic.
+Data shapes live in models.py; the terminal/JSON/SARIF renderers live in
+reporters.py (the themed HTML one lives in web/html_report.py); collapsing
+duplicate hits into one leak lives in dedup.py. This file is just the scoring
+logic.
+
+Asking a provider whether a secret is actually live lives in live_check.py.
+It only runs when ScanContext.verify_live is set, because it puts the
+candidate secret on the network.
 
 The scoring rubric is deliberately a small, documented point system (see
 SCORING RUBRIC below) rather than a black box, because it has to be
@@ -42,9 +47,10 @@ import re
 import sys
 from typing import Iterable, List, Optional, Union
 
+import live_check
 from dedup import deduplicate as _dedup
 from models import Severity, RawFinding, ScoredFinding, ScanContext
-from reporters import render_terminal, render_json
+from reporters import render_terminal, render_json, render_sarif
 
 
 # Placeholder filter
@@ -162,6 +168,8 @@ def _redact_line(line: str, secret: str, redacted: str,
 #     -25  file is docs/README/markdown
 #      -5  history-only (already removed from working tree -- still leaked, less urgent)
 #     +10  entropy >= 4.5   /   +5  entropy >= 4.0   (stronger evidence it's a real random secret)
+#     +25  confirmed live by the provider  (--verify-live only; see live_check.py)
+#     cap 10  confirmed dead by the provider -- floors it at LOW
 #
 # Rationale: false NEGATIVES (a missed live key) are far more expensive than
 # false POSITIVES (a downgraded test fixture), so the base numbers lean high
@@ -211,7 +219,8 @@ def _classify_file(path: str) -> str:
     return "other"
 
 
-def _score_one(rf: RawFinding) -> tuple[int, str, List[str]]:
+def _score_one(rf: RawFinding,
+               verified: Optional[bool] = None) -> tuple[int, str, List[str]]:
     """Return (points, file_class, list-of-reason-clauses) for a raw finding."""
     points = _BASE_POINTS.get(rf.detector_type, _DEFAULT_BASE)
     reasons = [f"{rf.detector_type} pattern (base {points})"]
@@ -248,6 +257,16 @@ def _score_one(rf: RawFinding) -> tuple[int, str, List[str]]:
         elif rf.entropy_score >= 4.0:
             points += 5
             reasons.append(f"high entropy {rf.entropy_score} (+5)")
+
+    # Applied last, because a provider's answer outranks everything inferred
+    # from where the file sits. A live key in tests/ is still a live key, and
+    # no amount of .env context makes a revoked one urgent.
+    if verified is True:
+        points += 25
+        reasons.append("confirmed live by the provider (+25)")
+    elif verified is False:
+        points = min(points, 10)
+        reasons.append("provider rejected this credential (capped)")
 
     return points, file_class, reasons
 
@@ -292,6 +311,24 @@ def _coerce(f: Union[RawFinding, dict]) -> RawFinding:
     raise TypeError(f"Cannot interpret finding of type {type(f).__name__}")
 
 
+def _aws_secrets_by_file(findings: List[RawFinding]) -> dict:
+    """
+    Map file path -> AWS secret access key found in that file.
+
+    Signing an STS request needs the access key id AND its secret, but the
+    detectors report them as two separate findings. Pairing them by file is
+    the assumption that actually holds in practice: whoever hardcodes an
+    AKIA... puts the matching secret on the next line of the same .env or
+    config. Anything that doesn't pair up stays unverifiable, which is the
+    honest answer rather than a guess.
+    """
+    return {
+        rf.file_path: rf.matched_string
+        for rf in findings
+        if rf.detector_type == "AWS_SECRET_KEY"
+    }
+
+
 def filter_and_score(
     findings: Iterable[Union[RawFinding, dict]],
     context: Optional[ScanContext] = None,
@@ -311,12 +348,24 @@ def filter_and_score(
     ctx = context or ScanContext()
     scored: List[ScoredFinding] = []
 
-    for rf in deduplicate(_coerce(f) for f in findings):
+    deduped = list(deduplicate(_coerce(f) for f in findings))
+    aws_secrets = _aws_secrets_by_file(deduped) if ctx.verify_live else {}
+
+    for rf in deduped:
         placeholder = is_placeholder(rf.matched_string, ctx.extra_placeholder_patterns)
         if placeholder and not ctx.keep_placeholders:
             continue  # suppressed entirely
 
-        points, file_class, reasons = _score_one(rf)
+        # Opt-in, and skipped for placeholders -- there is no point spending a
+        # network round trip to be told YOUR_API_KEY_HERE isn't a live token.
+        verified = None
+        if ctx.verify_live and not placeholder:
+            verified = live_check.verify(
+                rf.detector_type, rf.matched_string,
+                aws_secret_key=aws_secrets.get(rf.file_path),
+            )
+
+        points, file_class, reasons = _score_one(rf, verified)
         if placeholder:  # kept only because ctx.keep_placeholders is on
             points = min(points, 10)
             reasons.append("looks like a placeholder (capped)")
@@ -346,6 +395,18 @@ def filter_and_score(
             f"{severity.label} severity: {redacted} ({rf.detector_type}), "
             f"{exposure_phrase}. Score {points} from " + ", ".join(reasons) + "."
         )
+        # Say which of the three answers this was, in words. "Not checked" and
+        # "checked, came back dead" lead to opposite actions, so a reader must
+        # never have to infer which one they're looking at.
+        if verified is True:
+            rationale += (" Verified: the provider accepted this credential, "
+                          "so it is live and needs rotating now.")
+        elif verified is False:
+            rationale += (" Verified: the provider rejected this credential, "
+                          "so it is already dead -- clean it up, no rush.")
+        elif ctx.verify_live:
+            rationale += (" Not verified: no provider check is available for "
+                          "this type, or the check could not be completed.")
 
         scored.append(ScoredFinding(
             detector_type=rf.detector_type,
@@ -362,6 +423,7 @@ def filter_and_score(
             file_class=file_class,
             occurrences=rf.occurrences,
             history_commits=rf.history_commits,
+            verified=verified,
         ))
 
     scored = [s for s in scored if s.severity >= ctx.min_severity]
@@ -380,10 +442,10 @@ def generate_report(
     home_url: Optional[str] = None,
 ) -> str:
     """
-    Render scored findings. fmt is "terminal" | "json" | "html".
+    Render scored findings. fmt is "terminal" | "json" | "sarif" | "html".
     Returns the rendered string; also writes it to output_path if given.
 
-    Terminal/json rendering lives in reporters.py, alongside the detection
+    Terminal/json/sarif rendering lives in reporters.py, alongside the detection
     engine at the repo root. HTML rendering lives in web/html_report.py and is
     only imported here, lazily, when fmt="html" is actually requested -- so
     nothing at the root has a hard import-time dependency on the web/
@@ -399,12 +461,16 @@ def generate_report(
         out = render_terminal(scored_findings, use_color)
     elif fmt == "json":
         out = render_json(scored_findings)
+    elif fmt == "sarif":
+        out = render_sarif(scored_findings)
     elif fmt == "html":
         from web.html_report import render_html
         out = render_html(scored_findings, target=target, fix_enabled=fix_enabled,
                           home_url=home_url)
     else:
-        raise ValueError(f"Unknown report format {fmt!r} (use terminal|json|html)")
+        raise ValueError(
+            f"Unknown report format {fmt!r} (use terminal|json|sarif|html)"
+        )
 
     if output_path:
         with open(output_path, "w", encoding="utf-8") as f:
@@ -457,7 +523,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("findings", nargs="?",
                    help="JSON file of raw findings; omit to run the built-in demo")
     p.add_argument("--format", default="terminal",
-                   choices=["terminal", "json", "html"], help="report format")
+                   choices=["terminal", "json", "sarif", "html"],
+                   help="report format")
     p.add_argument("-o", "--output", help="write the report to this file")
     p.add_argument("--fail-on", default="none",
                    choices=["none"] + [s.name.lower() for s in Severity],
@@ -535,7 +602,7 @@ def _demo() -> None:
     assert scored[0].severity >= scored[-1].severity
 
     # No output leaks a full secret -- check every renderer.
-    for fmt in ("terminal", "json", "html"):
+    for fmt in ("terminal", "json", "sarif", "html"):
         text = generate_report(scored, fmt, use_color=False)
         assert live_aws not in text, f"raw secret leaked into {fmt} output"
 

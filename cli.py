@@ -10,8 +10,13 @@ issues on presentation day. Nothing here duplicates orchestration logic;
 it's a thin argparse wrapper around orchestrator.run_scan().
 
 Usage:
-    python cli.py <path-or-url> [--history] [--format terminal|json|html]
-                  [-o OUTPUT] [--fail-on none|low|medium|high|critical]
+    python cli.py <path-or-url> [--history | --staged] [--full-scan]
+                  [--format terminal|json|sarif|html] [-o OUTPUT]
+                  [--baseline [PATH]] [--update-baseline [PATH]]
+                  [--fail-on none|low|medium|high|critical] [--verify-live]
+
+Pre-commit use:
+    python cli.py --staged --baseline --fail-on high
 """
 
 from __future__ import annotations
@@ -40,6 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
         "target", nargs="?", default=".",
         help="local folder path or GitHub URL (default: current directory)",
     )
+
+    # What to scan
     p.add_argument(
         "--history", action="store_true",
         help="also scan git history for secrets that were added then removed",
@@ -53,6 +60,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="skip the default ignore list (binaries, node_modules, ...) and scan everything",
     )
     p.add_argument(
+        "--max-commits", type=int, default=None,
+        help="cap how many commits --history walks (useful for big repos / demo speed)",
+    )
+    p.add_argument(
+        "--ignore-file",
+        help="extra .sentryignore-style file (gitignore syntax), merged with defaults",
+    )
+
+    # How hard to look
+    p.add_argument(
+        "--verify-live", action="store_true",
+        help="ask the provider whether each AWS/GitHub/Stripe/Slack secret still "
+             "works. This sends the candidate secret to that provider over the "
+             "network, so it stays off unless you ask for it",
+    )
+
+    # What to suppress
+    p.add_argument(
         "--baseline", nargs="?", const=baseline.DEFAULT_BASELINE_NAME, default=None,
         metavar="PATH",
         help="suppress findings listed in this baseline file "
@@ -65,27 +90,22 @@ def build_parser() -> argparse.ArgumentParser:
              "(accept everything found today)",
     )
     p.add_argument(
-        "--format", default="terminal", choices=["terminal", "json", "html"],
-        help="report format (default: terminal)",
+        "--min-severity", default="low",
+        choices=[s.name.lower() for s in Severity],
+        help="drop findings below this severity from the report (default: low)",
+    )
+
+    # What to emit
+    p.add_argument(
+        "--format", default="terminal",
+        choices=["terminal", "json", "sarif", "html"],
+        help="report format (default: terminal). sarif uploads to GitHub Code Scanning",
     )
     p.add_argument("-o", "--output", help="write the report to this file")
-    p.add_argument(
-        "--ignore-file",
-        help="extra .sentryignore-style file (gitignore syntax), merged with defaults",
-    )
-    p.add_argument(
-        "--max-commits", type=int, default=None,
-        help="cap how many commits --history walks (useful for big repos / demo speed)",
-    )
     p.add_argument(
         "--fail-on", default="none",
         choices=["none"] + [s.name.lower() for s in Severity],
         help="exit 1 if any finding is at/above this severity (default: none, never fails)",
-    )
-    p.add_argument(
-        "--min-severity", default="low",
-        choices=[s.name.lower() for s in Severity],
-        help="drop findings below this severity from the report (default: low)",
     )
     return p
 
@@ -130,7 +150,10 @@ def main(argv: Optional[List[str]] = None) -> int:
               "(staged content isn't committed yet)", file=sys.stderr)
         return 2
 
-    ctx = ScanContext(min_severity=_SEVERITY_BY_NAME[args.min_severity])
+    ctx = ScanContext(
+        min_severity=_SEVERITY_BY_NAME[args.min_severity],
+        verify_live=args.verify_live,
+    )
 
     try:
         scored = run_scan(

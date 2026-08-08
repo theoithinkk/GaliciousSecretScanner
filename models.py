@@ -90,6 +90,12 @@ class ScoredFinding:
     entropy_score: Optional[float] = None
     file_class: str = "other"     # env | config | source | test | docs | other
 
+    # What the provider said when asked whether this credential still works.
+    # True = accepted, False = rejected, None = never checked, or checked and
+    # the answer didn't arrive. None and False are different answers and must
+    # not be collapsed when rendering. See live_check.py.
+    verified: Optional[bool] = None
+
     # Dedup bookkeeping, so a reader can tell "one leak seen 40 times" apart
     # from "40 separate leaks".
     occurrences: int = 1
@@ -122,3 +128,7 @@ class ScanContext:
     keep_placeholders: bool = False           # if True, don't drop placeholders, just downgrade
     min_severity: Severity = Severity.LOW      # drop anything below this from the output
     extra_placeholder_patterns: Iterable[str] = field(default_factory=tuple)
+
+    # Off by default and it has to stay that way: turning this on sends every
+    # candidate secret to the provider it belongs to, over the network.
+    verify_live: bool = False
