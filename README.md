@@ -24,7 +24,6 @@ Galicious Secret Scanner scans a local folder or a GitHub repo for exposed secre
 </p>
 
 ## Purpose
-<p align="justify">
 The tool answers one concrete question for a developer or auditor: *did we leave any secrets sitting in this codebase, including ones that were deleted from the latest commit but are still recoverable from history?* Specifically, it is built to detect:
 
 - Hardcoded API keys (AWS-style access keys, Stripe, GitHub, Slack tokens, and other vendor formats)
@@ -35,7 +34,6 @@ The tool answers one concrete question for a developer or auditor: *did we leave
 - Secrets that once existed in a repository's Git history but were later removed from the working files
 
 The tool is scoped to detection and reporting, not exploitation. With `--verify-live` it asks a provider whether a credential still authenticates, using an unprivileged "who am I" call such as `sts:GetCallerIdentity`. It never reads, writes, or changes anything using a credential it finds, and that check stays off unless it is explicitly requested.
-</p>
 
 ## Features
 
