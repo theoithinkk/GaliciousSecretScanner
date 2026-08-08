@@ -32,12 +32,12 @@ TERMINAL_CSS = """
      Scoped to .term so nothing outside the panel changes. */
   .term { --green: #14b87d;
     position:fixed; inset:0; z-index:50; display:none; align-items:center;
-    justify-content:center; padding:1.2rem; background:rgba(1,2,4,.9);
+    justify-content:center; padding:1.2rem; background:rgba(5,7,10,.92);
     backdrop-filter:blur(3px); }
   .term.open { display:flex; }
 
   .term-win { position:relative; width:min(880px,100%); max-height:86vh; display:flex;
-    flex-direction:column; background:#010306; overflow:hidden;
+    flex-direction:column; background:var(--bg); overflow:hidden;
     border:1px solid rgba(20,184,125,.32); border-radius:3px;
     box-shadow:0 0 0 1px rgba(20,184,125,.06), 0 12px 40px -6px rgba(0,0,0,.8),
       inset 0 0 60px rgba(20,184,125,.02); }
@@ -106,14 +106,14 @@ TERMINAL_CSS = """
   .term-body .tl.head { color:var(--green); text-shadow:0 0 6px rgba(20,184,125,.35);
     margin-top:.7rem; letter-spacing:.08em; }
   .term-body .k { color:var(--muted); display:inline-block; width:12ch; }
-  .term-body .v { color:#e9fff4; }
+  .term-body .v { color:var(--text); }
   .term-body .v.crit { color:var(--crit); } .term-body .v.high { color:var(--high); }
   .term-body .v.med { color:var(--med); }  .term-body .v.low { color:var(--low); }
   .term-body .v.ok { color:var(--green); }
   .term-actions { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;
     margin-top:.9rem; padding-top:.8rem; border-top:1px dashed rgba(20,184,125,.18); }
   .fixbtn { font:inherit; font-size:var(--fs-xs); letter-spacing:.12em; text-transform:uppercase;
-    color:#04080b; background:var(--green); border:none; padding:.6rem 1.25rem; cursor:pointer;
+    color:var(--bg); background:var(--green); border:none; padding:.6rem 1.25rem; cursor:pointer;
     border-radius:2px; font-weight:700; box-shadow:0 0 14px rgba(20,184,125,.35);
     transition:transform .1s, box-shadow .15s, opacity .15s; }
   .fixbtn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 0 20px rgba(20,184,125,.5); }

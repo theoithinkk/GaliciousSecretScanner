@@ -208,7 +208,7 @@ REPORT_CSS = """
     letter-spacing:.14em; text-transform:uppercase; color:var(--muted); pointer-events:none; }
   .finding:hover .inspect { color:var(--green); text-shadow:0 0 8px rgba(0,255,156,.6); }
   .fhead { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.75rem; }
-  .floc { color:#e9fff4; font-weight:700; letter-spacing:.03em; }
+  .floc { color:var(--text); font-weight:700; letter-spacing:.03em; }
   .ftag { font-size:var(--fs-xs); letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
     border:1px solid var(--grid); padding:.15rem .55rem; border-radius:2px; }
   .ftag.live { color:var(--high); border-color:rgba(255,106,60,.4); }
@@ -218,7 +218,7 @@ REPORT_CSS = """
   .fkey { color:var(--muted); text-transform:uppercase; font-size:var(--fs-xs); letter-spacing:.1em;
     padding-top:.18rem; }
   .fval { color:var(--text); word-break:break-all; }
-  .fval.secret { color:#e9fff4; letter-spacing:.05em; }
+  .fval.secret { color:var(--text); letter-spacing:.05em; }
   .fval.why { color:var(--muted); line-height:1.65; word-break:normal; }
   .empty { padding:2.5rem; text-align:center; color:var(--muted); letter-spacing:.1em;
     border:1px dashed var(--grid); }
