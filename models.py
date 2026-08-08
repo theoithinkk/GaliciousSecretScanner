@@ -49,7 +49,6 @@ class RawFinding:
     occurrences: int = 1                      # how many raw hits merged into this
     history_commits: tuple = ()               # every commit this secret was seen in, oldest first
 
-    remediation_steps: List[str] = field(default_factory=list) # Added by Lance
     @classmethod
     def from_detection(cls, detector_finding, walker_finding) -> "RawFinding":
         """
@@ -95,6 +94,12 @@ class ScoredFinding:
     # the answer didn't arrive. None and False are different answers and must
     # not be collapsed when rendering. See live_check.py.
     verified: Optional[bool] = None
+
+    # What to actually do about this finding, filled in by
+    # remediation.annotate(). Declared here rather than attached as a loose
+    # attribute so it always exists (renderers can test it without guarding)
+    # and so asdict() carries it into the JSON and SARIF reports.
+    remediation_steps: List[str] = field(default_factory=list)
 
     # Dedup bookkeeping, so a reader can tell "one leak seen 40 times" apart
     # from "40 separate leaks".

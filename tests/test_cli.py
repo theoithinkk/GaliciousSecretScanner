@@ -39,8 +39,12 @@ class TestArgumentParsing(unittest.TestCase):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             cli.build_parser().parse_args(argv)
 
-    def test_target_is_required(self):
-        self.assertRejected([])
+    def test_target_defaults_to_the_current_directory(self):
+        # --staged runs from a pre-commit hook with no arguments, so a missing
+        # target means "here" rather than an error. Worth knowing that a bare
+        # `python cli.py` scans whatever directory you are standing in.
+        args = cli.build_parser().parse_args([])
+        self.assertEqual(args.target, ".")
 
     def test_defaults(self):
         args = cli.build_parser().parse_args(["some/path"])
@@ -149,14 +153,6 @@ class TestOutputFormats(unittest.TestCase):
             with self.subTest(fmt=fmt):
                 _, out, _ = run_cli(self.repo.path, "--format", fmt)
                 self.assertNotIn(AWS_KEY, out)
-
-
-class TestKnownGaps(unittest.TestCase):
-    def test_full_scan_is_not_exposed_on_the_cli(self):
-        # orchestrator.run_scan and the web UI both support full_scan, but
-        # cli.py has no flag for it. Remove this test when the flag is added.
-        self.assertNotIn("--full-scan",
-                         cli.build_parser().format_help())
 
 
 if __name__ == "__main__":
