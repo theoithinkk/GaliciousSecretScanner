@@ -98,6 +98,18 @@ TERMINAL_CSS = """
   .term-x:hover { color:var(--crit); border-color:var(--crit); }
   .term-body { flex:1; overflow-y:auto; padding:1.15rem 1.3rem 1.3rem; font-size:var(--fs-sm);
     line-height:1.75; color:var(--text); }
+  /* The body is what scrolls, so its scrollbar sits hard against the window
+     edge. BASE_CSS paints every track transparent, which made the gutter read
+     as a darker column and stopped the panel background short of its own
+     border. Paint the track with the window colour and inset the thumb so the
+     panel reads as one surface all the way to the edge. */
+  .term-body { scrollbar-color:rgba(20,184,125,.4) var(--bg); }
+  .term-body::-webkit-scrollbar { width:10px; }
+  .term-body::-webkit-scrollbar-track { background:var(--bg); }
+  .term-body::-webkit-scrollbar-thumb { background:rgba(20,184,125,.4);
+    border:2px solid var(--bg); background-clip:padding-box; border-radius:5px; }
+  .term-body::-webkit-scrollbar-thumb:hover { background:rgba(20,184,125,.65);
+    background-clip:padding-box; }
   .term-body .tl { white-space:pre-wrap; word-break:break-word; }
   .term-body .tl.dim { color:var(--muted); }
   .term-body .tl.ok { color:var(--green); }
