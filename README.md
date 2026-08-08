@@ -1,11 +1,26 @@
-# GaliciousSecretScanner
+<p align="center">
+<img src="images/dlsu_logo.png" alt="De La Salle University Logo" width="150"/>
+</p>
 
-## Tool Name
-**GaliciousSecretScanner**
+# Galicious Secret Scanner - README
+
+### Mini Project: Hacking Tool Creation
+
+**Submitted by Group 7 [S01]:**
+
+- GALICIA, Lance Krystofer
+- GARCIA, Theodore Rodolfo III
+- KE, Xan Luo
+- MOJICA, Maurienne Marie
+- YAMSUAN, Rhian Claire
+
+*August 10, 2026*
+
+---
 
 ## Description
 <p align="justify">
-GaliciousSecretScanner scans a local folder or a GitHub repo for exposed secrets. Two detection engines feed a single scoring and reporting pipeline. The first is a regex signature library for known formats such as AWS, Stripe, GitHub, Slack, JWTs, private keys and database connection strings. The second is a Shannon-entropy fallback for custom tokens that don't match any known shape. Every finding is deduplicated, scored, redacted, and given a plain-language reason. No output, in any format, ever contains a full secret.
+Galicious Secret Scanner scans a local folder or a GitHub repo for exposed secrets. Two detection engines feed a single scoring and reporting pipeline. The first is a regex signature library for known formats such as AWS, Stripe, GitHub, Slack, JWTs, private keys and database connection strings. The second is a Shannon-entropy fallback for custom tokens that don't match any known shape. Every finding is deduplicated, scored, redacted, and given a plain-language reason. No output, in any format, ever contains a full secret.
 </p>
 
 ## Purpose
@@ -98,7 +113,7 @@ web/templates/         the scan-form page
 Tests live in `tests/` and there are 316 of them. They run offline, because the provider checks are exercised against a patched HTTP layer and the suite never opens a socket. `scripts/make_test_repo.py` builds a deliberately vulnerable fixture repo to scan against.
 
 ## Testing Environment
-In keeping with this course's ethical requirements, Galicious Scanner should only ever be run against:
+In keeping with this course's ethical requirements, Galicious Secret Scanner should only ever be run against:
 - Local folders on a personal machine
 - Intentionally vulnerable lab repositories set up for this course
 - Seeded demo repositories created specifically to showcase detection (see `scripts/make_test_repo.py`, which builds a deliberately vulnerable fixture repo for this purpose)
@@ -135,7 +150,7 @@ Full detail and exact files to touch for each item are in [`docs/ROADMAP.md`](do
 <p align="justify">
 This tool was developed for educational purposes only. It must only be used in authorized and controlled testing environments. Unauthorized testing against real systems, public websites, or third-party services is strictly prohibited.
 
-It was built as part of the NSSECU2 (Advanced and Offensive Security) mini-project. Galicious Scanner should only be pointed at repositories and folders that you own, have written permission to inspect, or created intentionally for coursework and demonstration. It should not be used against live production systems, school infrastructure, or any environment outside the scope of authorized testing.
+It was built as part of the NSSECU2 (Advanced and Offensive Security) mini-project. Galicious Secret Scanner should only be pointed at repositories and folders that you own, have written permission to inspect, or created intentionally for coursework and demonstration. It should not be used against live production systems, school infrastructure, or any environment outside the scope of authorized testing.
 
 One note on `--verify-live`. It is the only option that sends anything off the machine, because it transmits the candidate secret to the provider it appears to belong to. Use it only on credentials you own or are authorized to test.
 </p>
@@ -151,7 +166,7 @@ One note on `--verify-live`. It is the only option that sends anything off the m
 
 ## Original Contribution
 <p align="justify">
-Galicious Scanner is not a single-technique scanner. It combines a known-format regex library with an entropy-based fallback, so both recognizable and custom internal secrets are caught in the same pass. Hits from the two engines are then deduplicated into one finding rather than reported as the same leak twice.
+Galicious Secret Scanner is not a single-technique scanner. It combines a known-format regex library with an entropy-based fallback, so both recognizable and custom internal secrets are caught in the same pass. Hits from the two engines are then deduplicated into one finding rather than reported as the same leak twice.
 
 Its severity scoring is context-aware rather than a flat match or no-match result. It factors in whether a file is a live config or a test fixture, whether the surrounding folder is a test or example directory, whether the value matches a known placeholder, and whether the file is actually tracked by Git. The report therefore tells the user which findings genuinely matter, instead of only where a pattern matched.
 
