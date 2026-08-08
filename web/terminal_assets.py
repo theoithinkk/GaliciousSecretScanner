@@ -100,13 +100,6 @@ TERMINAL_CSS = """
   .term-x:hover { color:var(--crit); border-color:var(--crit); }
   .term-body { flex:1; overflow-y:auto; padding:1.15rem 1.3rem 1.3rem; font-size:var(--fs-sm);
     line-height:1.75; color:var(--text); }
-  /* No scrollbar gutter. The browser paints a gutter as chrome, outside the
-     element background AND outside .term-scan, so it stayed a bare black
-     column with no scanlines while the rest of the panel was tinted. Colouring
-     the track cannot fix that, only removing the gutter can. The body still
-     scrolls by wheel, trackpad, arrow keys and Page Up/Down. */
-  .term-body { scrollbar-width:none; }
-  .term-body::-webkit-scrollbar { width:0; height:0; }
   .term-body .tl { white-space:pre-wrap; word-break:break-word; }
   .term-body .tl.dim { color:var(--muted); }
   .term-body .tl.ok { color:var(--green); }
@@ -272,6 +265,7 @@ TERMINAL_JS = """
 
       typeOut(steps, function () { renderActions(card); });
 
+      lockPage();
       term.classList.remove('closing');
       term.classList.add('open');
       const x = document.getElementById('termX');
@@ -350,10 +344,28 @@ TERMINAL_JS = """
       }
     }
 
+    // A position:fixed overlay sizes to the DOCUMENT's client width, which
+    // excludes the browser's own scrollbar. So with the panel open the page's
+    // scrollbar sat beside it as a bare dark strip the panel background could
+    // never reach. Locking the page while the panel is open removes it. The
+    // padding replaces exactly the width the scrollbar was occupying, so the
+    // page behind does not jump sideways as it appears and disappears.
+    function lockPage() {
+      const bar = window.innerWidth - document.documentElement.clientWidth;
+      if (bar > 0) document.body.style.paddingRight = bar + 'px';
+      document.documentElement.style.overflow = 'hidden';
+    }
+
+    function unlockPage() {
+      document.documentElement.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
     function close() {
       term.classList.add('closing');
       setTimeout(function () {
         term.classList.remove('open', 'closing');
+        unlockPage();
         if (current) { current.focus(); current = null; }
       }, reduce ? 0 : 190);
     }
