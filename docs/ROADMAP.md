@@ -1,6 +1,8 @@
 # Roadmap
 
-Features left for someone else to build. Each entry below is a template:
+Everything on this list has now shipped. The entries are kept as written --
+problem, reasoning, where it landed -- because the reasoning is the useful
+part to read back later. Each entry below is a template:
 problem, why it matters, where it lives (or should), effort, and what "done"
 looks like. Pick one, delete the rest of that entry's placeholder text as you
 fill it in, and open a PR against just that feature -- these are independent
@@ -13,9 +15,9 @@ of each other.
 | 0 | One-click fix | **Done** -- see below |
 | 1 | Verified-live checking (3-4 providers) | **Done** -- see below |
 | 2 | SARIF output | **Done** -- see below |
-| 3 | Pre-commit hook + `--staged` | Not started |
-| 4 | Baseline / allowlist file | Not started |
-| 5 | Remediation guidance per finding | Not started |
+| 3 | Pre-commit hook + `--staged` | **Done** -- `staged.py`, `.pre-commit-hooks.yaml` |
+| 4 | Baseline / allowlist file | **Done** -- `baseline.py`, `--baseline` / `--update-baseline` |
+| 5 | Remediation guidance per finding | **Done** -- `remediation.py`, shown in terminal / JSON / HTML |
 
 ---
 
@@ -187,7 +189,7 @@ infrastructure. This is the best effort-to-payoff item on this list.
 
 ---
 
-## 3. Pre-commit hook + `--staged`
+## 3. Pre-commit hook + `--staged` -- DONE
 
 **Why:** this is the other half of "how is this not redundant." GitHub's
 push protection is prevention (the secret never reaches the remote); this
@@ -225,7 +227,7 @@ all.
 
 ---
 
-## 4. Baseline / allowlist file
+## 4. Baseline / allowlist file -- DONE
 
 **Why:** `--fail-on` cannot currently be turned on for any repo that already
 has existing findings -- there's no way to say "these N are accepted, fail
@@ -265,7 +267,7 @@ practice.
 
 ---
 
-## 5. Remediation guidance per finding
+## 5. Remediation guidance per finding -- DONE
 
 **Why:** the report already explains *why* a finding scored what it did
 (`rationale`). It does not explain *what to do* beyond a generic "rotate

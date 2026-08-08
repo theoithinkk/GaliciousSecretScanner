@@ -4,8 +4,12 @@ __pycache__/
 venv/
 test-repo/
 
-# Generated reports, including the one `py scorer_reporter.py` writes when it
-# runs its built-in self-check.
+# Generated reports. cli.py writes these wherever -o points; these are the
+# names the README and the CI workflow use.
 report.html
 report.json
-report_sample.html
+results.sarif
+galicious-report.*
+
+# Windows/MSYS crash dumps.
+*.stackdump

@@ -48,7 +48,10 @@ The tool is scoped to detection and reporting, not exploitation. With `--verify-
 - **Verified-live checking** (`--verify-live`): asks the provider itself whether a candidate secret still works. AWS uses `sts:GetCallerIdentity` signed with a hand-rolled SigV4, GitHub uses `GET /user`, Stripe uses `GET /v1/account`, and Slack uses `auth.test`. A confirmed-live key is promoted to Critical wherever it sits, and a confirmed-dead one drops to Low. It is off by default because it puts the candidate secret on the network
 - **Multiple report formats**: terminal, JSON, SARIF 2.1.0, and a themed HTML report
 - **GitHub Code Scanning integration**: `--format sarif` uploads through `github/codeql-action/upload-sarif`, so findings land in the repo's Security tab next to CodeQL. See `.github/workflows/secret-scan.yml`
-- **Web UI**: a Flask app (`web/app.py`) with a scan form, a clickable themed report, and a **one-click fix** that rewrites the offending source line to an environment-variable lookup and moves the secret into `.env`
+- **Staged-only scanning** (`--staged`): scans just the lines a commit adds, so a pre-existing secret elsewhere in the file doesn't fail a commit that didn't introduce it. Ships as a `.pre-commit-hooks.yaml` entry
+- **Baseline / allowlist** (`--baseline`, `--update-baseline`): fingerprints accepted findings into `.sentrybaseline` so `--fail-on` is usable on a repo that already has findings. The fingerprint is `sha256(file + type + redacted)`, which survives line-number drift
+- **Remediation guidance**: every detector type carries ordered, plain-language steps (rotate first, then the code edit), plus git-history purge steps when the secret was ever committed. Shown in the terminal report, the JSON output, and the HTML report's detail panel (SARIF carries the finding, not the advice)
+- **Web UI**: a Flask app (`web/app.py`) with a scan form, a clickable themed report, downloadable JSON/SARIF/HTML, and a **one-click fix** that rewrites the offending source line to an environment-variable lookup and moves the secret into `.env`
 
 ## System Requirements
 - Python 3.9 or later, on the system `PATH`
@@ -70,15 +73,29 @@ If it prints the list of available options instead of an error, installation suc
 ## Usage
 ```bash
 # command line
-python cli.py <path-or-url> [--history] [--format terminal|json|sarif|html] [--verify-live]
+python cli.py <path-or-url> [--history | --staged] [--full-scan] [--verify-live]
+                            [--format terminal|json|sarif|html] [-o OUTPUT]
+                            [--min-severity low|medium|high|critical]
+                            [--baseline [PATH]] [--update-baseline [PATH]]
+                            [--fail-on none|low|medium|high|critical]
 
-# web UI (themed report, clickable findings, one-click fix)
-python web/app.py
+# web UI (themed report, clickable findings, one-click fix, downloads)
+python web/app.py        # then open http://127.0.0.1:5000
 ```
-- `<path-or-url>`: a local folder or a GitHub repo URL
-- `--history`: also scans the full commit history (`git log -p --all`) for secrets that were later removed from the working files
-- `--format`: choose `terminal` (default), `json`, `sarif`, or `html` for the report
+- `<path-or-url>`: a local folder or a GitHub repo URL (default: the current directory)
+- `--history`: also scans the full commit history (`git log -p --all`) for secrets that were later removed from the working files. `--max-commits N` caps how far back it walks
+- `--staged`: scans only the lines staged for commit. This is the pre-commit case, and it is mutually exclusive with `--history`
+- `--full-scan`: skips the default ignore list (binaries, `node_modules/`, build output) so nothing is left out
+- `--format`: choose `terminal` (default), `json`, `sarif`, or `html` for the report; `-o` writes it to a file
+- `--min-severity`: drop anything below this band from the report
 - `--verify-live`: check each AWS, GitHub, Stripe or Slack candidate against its provider. This sends the candidate secret to that provider, so it is off unless you ask for it
+- `--baseline` / `--update-baseline`: suppress findings already accepted in `.sentrybaseline`, or write the current findings into it
+- `--fail-on`: exit 1 if any finding reaches this severity, for use as a CI or pre-commit gate
+
+Using it as a pre-commit hook, in another repo's `.pre-commit-config.yaml`:
+```bash
+python cli.py --staged --baseline --fail-on high
+```
 
 Producing a SARIF file for GitHub Code Scanning:
 ```bash
@@ -93,6 +110,9 @@ pattern_detector.py   regex signature library (config/patterns.json)
 entropy_detector.py   Shannon-entropy fallback for custom secrets
 live_check.py         asks AWS/GitHub/Stripe/Slack if a secret is still live
 dedup.py              collapses duplicate raw hits into one leak
+staged.py             scans only the lines the staged diff adds (--staged)
+baseline.py           fingerprints accepted findings into .sentrybaseline
+remediation.py        per-detector-type "what to do about it" steps
 scorer_reporter.py    placeholder filtering, scoring rubric, report dispatch
 reporters.py          terminal, json and sarif renderers
 models.py             shared data shapes
@@ -104,11 +124,14 @@ The browser-facing layer lives under `web/`. It is only reached lazily by `score
 web/app.py             Flask routes: /, /api/fix, /api/browse
 web/fixer.py           one-click fix engine
 web/html_report.py     themed report page (severity tiles, terminal panel)
-web/report_assets.py   report page CSS/JS
+web/report_assets.py   shared page chrome (BASE_CSS/BASE_JS) + report page CSS/JS
 web/terminal_assets.py finding-detail terminal panel CSS/JS
 web/templates/         the scan-form page
 ```
-Tests live in `tests/` and there are 316 of them. They run offline, because the provider checks are exercised against a patched HTTP layer and the suite never opens a socket. `scripts/make_test_repo.py` builds a deliberately vulnerable fixture repo to scan against.
+The scan form and the report page pull their palette, matrix backdrop and
+scanline chrome from the same `BASE_CSS`/`BASE_JS` constants, so the two
+cannot drift apart.
+Tests live in `tests/` and there are 341 of them. They run offline, because the provider checks are exercised against a patched HTTP layer and the suite never opens a socket. `scripts/make_test_repo.py` builds a deliberately vulnerable fixture repo to scan against.
 
 ## Testing Environment
 In keeping with this course's ethical requirements, Galicious Secret Scanner should only ever be run against:
@@ -136,7 +159,15 @@ The HTML report renders the same finding with the file path, line number, a colo
 - Built and intended for controlled educational use, not as a hardened, production-grade secret-scanning solution
 
 ## Future Improvements
-Full detail and exact files to touch for each item are in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Every item on the original roadmap has shipped. [`docs/ROADMAP.md`](docs/ROADMAP.md)
+keeps the reasoning behind each one. What is still open:
+
+| Feature | What / how |
+|---|---|
+| Concurrent live verification | `--verify-live` checks findings one at a time and caches nothing, so the same key in ten files is ten requests |
+| Cross-file AWS key pairing | An `AKIA...` is only verifiable when its secret half sits in the same file; pairing across files or against `~/.aws/credentials` isn't attempted |
+| Multi-line secret rewrite | The one-click fix is line-based, like the detectors it reuses, so a PEM block can't be relocated automatically |
+| Batch fix | A "fix every auto-fixable finding on this page" button, and an undo within the same session |
 
 ## Ethical Disclaimer
 <p align="justify">
