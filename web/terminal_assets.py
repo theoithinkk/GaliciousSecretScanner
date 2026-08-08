@@ -237,10 +237,8 @@ TERMINAL_JS = """
       steps.push(function () { line('  ' + esc(d.rationale), 'dim'); });
       steps.push(function () { line('[!] remediation', 'head'); });
 
-      // The per-detector steps remediation.py computed for this finding, in
-      // its order: rotation first, history purge last. Read off the card
-      // rather than rebuilt here, so the panel says exactly what the terminal,
-      // JSON and SARIF reports say -- one source of remediation truth.
+      // remediation.py's steps for this finding, in its order: rotation
+      // first, history purge last. Read off the card rather than rebuilt.
       const fix = parseSteps(d.remediation);
       if (fix.length) {
         fix.forEach(function (step, i) {

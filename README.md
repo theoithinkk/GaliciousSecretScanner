@@ -158,17 +158,6 @@ The HTML report renders the same finding with the file path, line number, a colo
 - An AWS access key can only be verified when its matching secret access key is found in the same file, because signing an STS request needs both halves. A lone `AKIA...` comes back unverified
 - Built and intended for controlled educational use, not as a hardened, production-grade secret-scanning solution
 
-## Future Improvements
-Every item on the original roadmap has shipped. [`docs/ROADMAP.md`](docs/ROADMAP.md)
-keeps the reasoning behind each one. What is still open:
-
-| Feature | What / how |
-|---|---|
-| Concurrent live verification | `--verify-live` checks findings one at a time and caches nothing, so the same key in ten files is ten requests |
-| Cross-file AWS key pairing | An `AKIA...` is only verifiable when its secret half sits in the same file; pairing across files or against `~/.aws/credentials` isn't attempted |
-| Multi-line secret rewrite | The one-click fix is line-based, like the detectors it reuses, so a PEM block can't be relocated automatically |
-| Batch fix | A "fix every auto-fixable finding on this page" button, and an undo within the same session |
-
 ## Ethical Disclaimer
 <p align="justify">
 This tool was developed for educational purposes only. It must only be used in authorized and controlled testing environments. Unauthorized testing against real systems, public websites, or third-party services is strictly prohibited.

@@ -28,11 +28,9 @@ class WalkerError(Exception):
     """Expected failure conditions (bad path, bad URL, no git, etc)."""
 
 
-# Temp clones, drained once at exit. ONE handler rather than one registration
-# per clone: walk() removes each directory in its own `finally`, but a caller
-# that abandons the generator early never reaches it, so this stays as the
-# backstop -- and registering per clone grew the handler list for the lifetime
-# of a long-running server.
+# Temp clones, drained once at exit. walk() removes each one in its `finally`,
+# but a caller that abandons the generator never gets there, so this is the
+# backstop. One handler, not one per clone, so the list can't grow forever.
 _TEMP_CLONES = set()
 
 
@@ -158,10 +156,9 @@ def buildIgnoreSpec(
     if hasPathspec:
         return pathspec.PathSpec.from_lines("gitignore", patterns)
 
-    # Not a silent downgrade. The fallback can't do negation (!keep-this) or **
-    # globs, so the same command scans DIFFERENT FILES here than on a machine
-    # with pathspec installed. A scanner that quietly changes what it scans is
-    # worse than a noisy one, so this says so every time it happens.
+    # The fallback can't do negation (!keep-this) or ** globs, so this machine
+    # scans different files than one with pathspec. Say so rather than differ
+    # silently.
     print("warning: pathspec is not installed, so ignore rules are matched with "
           "a reduced matcher that cannot handle negation (!) or ** patterns -- "
           "results WILL differ from a normal install. Fix with: "

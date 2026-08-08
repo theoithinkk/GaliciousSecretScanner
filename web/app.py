@@ -49,20 +49,14 @@ from web.report_assets import BASE_CSS, BASE_JS
 
 app = Flask(__name__)
 
-# The most recent scan, so the export links and the accept-all button have
-# something to act on without re-walking the tree. Findings only -- redacted
-# values, never a plaintext secret.
-#
-# ponytail: one global slot, because this tool is documented as running
-# locally, for one person, against one repo at a time. If it ever gets shared,
-# this becomes a session-keyed dict, and that is the only change needed.
+# The most recent scan, so the exports and the accept-all button have something
+# to act on without re-walking the tree. Redacted findings only, never a
+# plaintext secret. One slot is enough because the tool runs locally for one
+# person against one repo; sharing it would mean keying this by session.
 _LAST_SCAN = {"scored": [], "target": "", "suppressed": 0}
 
-# /api/browse walks real directories on this machine, so it needs a ceiling.
-# Home by default: that is where repos actually live, and without a ceiling
-# the endpoint is an unauthenticated filesystem browser for the whole disk --
-# the exact kind of finding this tool exists to report. Widen it deliberately
-# with GALICIOUS_BROWSE_ROOT when a repo lives somewhere else.
+# Ceiling for /api/browse. Without one the endpoint lists any directory on the
+# machine. Home covers where repos live; GALICIOUS_BROWSE_ROOT widens it.
 _BROWSE_ROOT = os.path.realpath(
     os.environ.get("GALICIOUS_BROWSE_ROOT") or os.path.expanduser("~"))
 
@@ -134,10 +128,8 @@ def index():
         # git missing, clone failed, etc) -- show the message, don't 500.
         return _form_page(str(e))
     except Exception:  # last-resort guard so a bug doesn't crash the demo
-        # The message deliberately does NOT include the exception text.
-        # Exception strings carry absolute paths and occasionally fragments of
-        # file content, and not leaking those is this tool's whole premise.
-        # The full traceback goes to the console running the server.
+        # No exception text in the page: those strings carry absolute paths and
+        # sometimes file content. The traceback goes to the server console.
         traceback.print_exc()
         return _form_page("Unexpected error during the scan. The traceback is "
                           "in the console running this server.")

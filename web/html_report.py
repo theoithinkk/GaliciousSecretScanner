@@ -91,14 +91,11 @@ def _finding_card(index: int, s: ScoredFinding, fix_enabled: bool) -> str:
         f'data-inhistory="{"1" if s.in_history else "0"}" '
         f'data-fixable="{"1" if (fixable and fix_enabled) else "0"}" '
         f'data-fixreason="{html.escape(fix_reason, quote=True)}" '
-        # The steps remediation.annotate() computed, carried to the detail
-        # panel as-is. Without this the panel would have to re-derive advice
-        # the pipeline already produced, and the HTML report would be the one
-        # format that disagrees with the other three.
+        # remediation.annotate()'s steps, carried to the detail panel as-is so
+        # the page can't disagree with the terminal and JSON reports.
         f'data-remediation="{html.escape(json.dumps(s.remediation_steps), quote=True)}" '
         f'data-ent="{s.entropy_score or 0}" '
-        # Capped: at 0.05s each, a 40-finding report animated for two seconds
-        # before the last one was readable.
+        # Capped: uncapped, a 40-finding report animated for two seconds.
         f'style="animation-delay:{min(index, 10) * 0.03:.2f}s">'
         f'<div class="fhead">'
         f'<span class="badge {sev}">{s.severity.label.upper()}</span>'
@@ -149,10 +146,8 @@ def render_html(scored: List[ScoredFinding], target: str = "",
         counts[s.severity] += 1
     order = (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW)
 
-    # Every line here states something actually true of this report. The old
-    # version printed "loading signature library ... [ OK ]" and "decrypting
-    # findings ... [ OK ]" unconditionally -- fabricated status output, which
-    # is a bad habit anywhere and a worse one in a security tool.
+    # Only real numbers here. Faking progress output in a security tool is a
+    # habit worth not starting.
     boot_lines = [
         "> galicious :: scan complete",
         f"> {len(scored)} finding(s)  "
