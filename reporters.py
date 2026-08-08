@@ -78,6 +78,17 @@ def render_terminal(scored: List[ScoredFinding], use_color: Optional[bool]) -> s
         body = f"    {s.redacted}   {dim0}{s.redacted_context}{dim1}"
         why = f"    {dim0}-> {s.rationale}{dim1}"
         lines += [head, body, why, ""]
+
+        # Added this -Lance
+        # Remediation steps, when remediation.annotate() has filled them in.
+        # Guarded rather than assumed so a caller that scores findings without
+        # going through orchestrator.run_scan() still renders cleanly.
+        if s.remediation_steps:
+            lines.append(f"    {dim0}fix:{dim1}")
+            for i, step in enumerate(s.remediation_steps, 1):
+                lines.append(f"      {dim0}{i}. {step}{dim1}")
+        lines.append("")
+
     return "\n".join(lines)
 
 

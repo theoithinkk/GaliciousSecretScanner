@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
 from enum import IntEnum
-from typing import Iterable, Optional
+from typing import Iterable, List, Optional
 
 
 # Data shapes
@@ -49,6 +49,7 @@ class RawFinding:
     occurrences: int = 1                      # how many raw hits merged into this
     history_commits: tuple = ()               # every commit this secret was seen in, oldest first
 
+    remediation_steps: List[str] = field(default_factory=list) # Added by Lance
     @classmethod
     def from_detection(cls, detector_finding, walker_finding) -> "RawFinding":
         """

@@ -32,7 +32,9 @@ from typing import Iterable, List, Optional
 
 import pattern_detector
 import entropy_detector
+import remediation
 from walker import walk, WalkerError  # noqa: F401  (re-exported for callers)
+from staged import walk_staged
 from models import RawFinding, ScanContext, ScoredFinding
 from scorer_reporter import filter_and_score
 
@@ -43,6 +45,7 @@ def collect_raw_findings(
     ignore_rules: Optional[Iterable[str]] = None,
     max_commits: Optional[int] = None,
     full_scan: bool = False,
+    staged: bool = False,
 ) -> List[RawFinding]:
     """
     Run the walker over `target`, run BOTH detectors over every line it
@@ -56,16 +59,30 @@ def collect_raw_findings(
     full_scan=True skips the built-in default ignore list (binaries,
     node_modules/, build/, etc) so nothing is left out. full_scan=False
     (quick scan, the default) applies those default ignores as usual.
+
+    staged=True scans ONLY the lines the staged diff adds (see staged.py) --
+    the pre-commit case. It replaces the walk entirely rather than narrowing
+    it, and `history` is meaningless alongside it, since staged content is by
+    definition not committed yet.
     """
     raw_findings: List[RawFinding] = []
 
-    for walker_finding in walk(
-        target,
-        ignore_rules=ignore_rules,
-        history=history,
-        max_commits=max_commits,
-        use_default_ignores=not full_scan,
-    ):
+    if staged:
+        source = walk_staged(
+            target,
+            ignore_rules=ignore_rules,
+            use_default_ignores=not full_scan,
+        )
+    else:
+        source = walk(
+            target,
+            ignore_rules=ignore_rules,
+            history=history,
+            max_commits=max_commits,
+            use_default_ignores=not full_scan,
+        )
+
+    for walker_finding in source:
         line = walker_finding.line_content
         if not line:
             continue
@@ -86,6 +103,7 @@ def run_scan(
     max_commits: Optional[int] = None,
     context: Optional[ScanContext] = None,
     full_scan: bool = False,
+    staged: bool = False,
 ) -> List[ScoredFinding]:
     """
     Full pipeline in one call: walk -> detect (both detectors) -> merge ->
@@ -106,5 +124,10 @@ def run_scan(
         ignore_rules=ignore_rules,
         max_commits=max_commits,
         full_scan=full_scan,
+        staged=staged,
     )
-    return filter_and_score(raw, context)
+    # Remediation is a post-pass, not part of scoring: it adds reference
+    # content to each finding without touching a single severity. Doing it
+    # here means both entry points (cli.py, web/app.py) get it and neither
+    # can drift, and scorer_reporter.py needs no edit at all.
+    return remediation.annotate(filter_and_score(raw, context))

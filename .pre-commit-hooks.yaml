@@ -1,0 +1,12 @@
+- id: galicious-scanner
+  name: Galicious Scanner (secrets)
+  description: >
+    Blocks a commit that stages a hardcoded secret. Scans only the lines the
+    commit adds, so a pre-existing secret elsewhere in the file doesn't fail
+    a commit that didn't introduce it.
+  entry: python cli.py --staged --baseline --fail-on high
+  language: python
+  # The scan target is the staged diff, not a file list, so pre-commit must not
+  # append filenames to the command.
+  pass_filenames: false
+  always_run: true
