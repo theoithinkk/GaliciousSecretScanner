@@ -32,11 +32,13 @@ TERMINAL_CSS = """
      Scoped to .term so nothing outside the panel changes. */
   .term { --green: #14b87d;
     position:fixed; inset:0; z-index:50; display:none; align-items:center;
-    justify-content:center; padding:1.2rem; background:rgba(5,7,10,.92);
+    justify-content:center; padding:1rem; background:rgba(5,7,10,.92);
     backdrop-filter:blur(3px); }
   .term.open { display:flex; }
 
-  .term-win { position:relative; width:min(880px,100%); max-height:86vh; display:flex;
+  /* Matches main's max-width on the report page, so the panel lines up with
+     the container it opened from instead of sitting narrower than it. */
+  .term-win { position:relative; width:min(1120px,100%); max-height:88vh; display:flex;
     flex-direction:column; background:var(--bg); overflow:hidden;
     border:1px solid rgba(20,184,125,.32); border-radius:3px;
     box-shadow:0 0 0 1px rgba(20,184,125,.06), 0 12px 40px -6px rgba(0,0,0,.8),
