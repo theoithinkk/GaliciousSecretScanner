@@ -28,9 +28,12 @@
   .stat-chip b { font-size:var(--fs-lg); color:var(--green); text-shadow:0 0 8px rgba(0,255,156,.45);
     letter-spacing:0; text-transform:none; }
 
-  .features { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--gap); margin-bottom:2.2rem; }
+  /* Two across, not four. Four columns inside a 960px page left each card
+     about 23 monospace characters per line, which turned three-line blurbs
+     into five-line slivers. Two gives roughly 55, which reads as a sentence. */
+  .features { display:grid; grid-template-columns:repeat(2,1fr); gap:1.2rem; margin-bottom:2.4rem; }
   .fcard { position:relative; background:var(--panel); border:1px solid var(--grid);
-    border-left:3px solid var(--muted); padding:1.1rem var(--pad) 1.2rem; backdrop-filter:blur(2px);
+    border-left:3px solid var(--muted); padding:1.35rem 1.45rem 1.45rem; backdrop-filter:blur(2px);
     opacity:0; transform:translateY(10px); animation:reveal .45s ease forwards;
     transition:border-color .15s, box-shadow .15s, transform .15s; }
   .fcard:hover { border-color:var(--green); box-shadow:0 0 18px rgba(0,255,156,.12); transform:translateY(-2px); }
@@ -54,8 +57,8 @@
   .cta-hint { font-size:var(--fs-xs); color:var(--muted); letter-spacing:.04em; }
   .hero-rule { border:none; border-top:1px dashed var(--grid); margin:0 0 2rem; }
 
-  @media (max-width:760px) {
-    .features { grid-template-columns:1fr 1fr; }
+  @media (max-width:620px) {
+    .features { grid-template-columns:1fr; }
   }
   @media (max-width:480px) {
     .features { grid-template-columns:1fr; }
