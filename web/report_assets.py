@@ -38,9 +38,23 @@ BASE_CSS = """
   * { box-sizing: border-box; }
   :root {
     --bg:#05070a; --panel:rgba(10,16,20,.72); --grid:rgba(0,255,156,.10);
-    --green:#00ff9c; --text:#9df5c4; --muted:#6f9483;
+    --green:#00ff9c; --text:#dff3e9; --muted:#a8c4b6;
     --crit:#ff2d6e; --high:#ff6a3c; --med:#ffd23a; --low:#28c8ff;
     --mono: ui-monospace,'Cascadia Code','JetBrains Mono','Fira Code',Consolas,monospace;
+
+    /* Four type steps, nothing in between. The pages used to carry eleven
+       sizes, several of them 0.02rem apart, which reads as drift rather than
+       hierarchy. xs is labels and tags, sm is prose, md is controls.
+
+       Body text is near-white rather than the old saturated mint, and not
+       pure white: on a near-black background #fff blooms, and the mint was
+       already 15:1 on contrast, so what hurt legibility at 12px was the
+       36%% saturation, not the brightness. */
+    --fs-xs:.82rem; --fs-sm:.9rem; --fs-md:1rem; --fs-lg:1.1rem;
+
+    /* One grid gap and one box padding, shared by the form and the report so
+       the two line up instead of each inventing its own spacing. */
+    --gap:1rem; --pad:1.15rem;
   }
   html,body { margin:0; background:var(--bg); color:var(--text); font-family:var(--mono); }
   html { scroll-behavior:smooth; }
@@ -56,7 +70,7 @@ BASE_CSS = """
   @keyframes scan { to { top:100%; } }
   @keyframes flicker { 0%,88%,100%{opacity:1;} 89%{opacity:.72;} 91%{opacity:1;} 93%{opacity:.85;} }
 
-  .boot { color:var(--green); font-size:.78rem; line-height:1.7; margin-bottom:1.1rem;
+  .boot { color:var(--green); font-size:var(--fs-sm); line-height:1.7; margin-bottom:1.1rem;
     text-shadow:0 0 6px rgba(0,255,156,.5); }
   .boot .ln { white-space:nowrap; overflow:hidden; width:0; max-width:100%;
     animation:type .5s steps(40,end) forwards; }
@@ -77,13 +91,13 @@ BASE_CSS = """
   @keyframes glitch2 { 0%,92%,100%{clip-path:inset(0 0 100% 0);transform:translate(0);}
     93%{clip-path:inset(70% 0 10% 0);transform:translate(2px,0);}
     96%{clip-path:inset(20% 0 55% 0);transform:translate(-2px,1px);} }
-  .sub { color:var(--muted); letter-spacing:.35em; text-transform:uppercase; font-size:.72rem;
+  .sub { color:var(--muted); letter-spacing:.35em; text-transform:uppercase; font-size:var(--fs-xs);
     margin-bottom:1.4rem; }
   .cursor { display:inline-block; width:.55ch; height:1em; vertical-align:-.12em;
     background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 1.05s steps(1) infinite; }
   @keyframes blink { 50%{opacity:0;} }
 
-  footer { margin-top:1.6rem; color:var(--muted); font-size:.72rem; letter-spacing:.06em; }
+  footer { margin-top:1.6rem; color:var(--muted); font-size:var(--fs-xs); letter-spacing:.06em; }
 
   * { scrollbar-width:thin; scrollbar-color:rgba(0,255,156,.4) transparent; }
   ::-webkit-scrollbar { width:10px; }
@@ -136,19 +150,19 @@ REPORT_CSS = """
   /* Back to the scan form. Sticky rather than fixed so it scrolls with the
      page on small screens instead of covering the findings. */
   .homebtn { position:sticky; top:.6rem; float:right; z-index:5; display:inline-block;
-    font-size:.66rem; letter-spacing:.14em; text-transform:uppercase; text-decoration:none;
+    font-size:var(--fs-xs); letter-spacing:.14em; text-transform:uppercase; text-decoration:none;
     color:var(--muted); background:var(--panel); border:1px solid var(--grid);
     border-radius:2px; padding:.42rem .9rem; backdrop-filter:blur(3px);
     transition:color .15s, border-color .15s, box-shadow .15s; }
   .homebtn:hover { color:var(--green); border-color:var(--green);
     box-shadow:0 0 14px rgba(0,255,156,.22); }
   .homebtn:focus-visible { outline:1px solid var(--green); outline-offset:2px; }
-  .target-line { color:var(--green); font-size:.72rem; letter-spacing:.05em; margin:-1rem 0 1.4rem;
+  .target-line { color:var(--green); font-size:var(--fs-xs); letter-spacing:.05em; margin:-1rem 0 1.4rem;
     word-break:break-all; text-shadow:0 0 6px rgba(0,255,156,.35); }
-  .suppressed-line { color:var(--muted); font-size:.7rem; letter-spacing:.06em;
+  .suppressed-line { color:var(--muted); font-size:var(--fs-xs); letter-spacing:.06em;
     margin:-1.1rem 0 1.4rem; }
-  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; margin-bottom:1.4rem; }
-  .card { position:relative; padding:.75rem 1.1rem; background:var(--panel); cursor:pointer;
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--gap); margin-bottom:1.6rem; }
+  .card { position:relative; padding:1rem var(--pad); background:var(--panel); cursor:pointer;
     border:1px solid var(--grid); border-left-width:3px; backdrop-filter:blur(2px);
     user-select:none; transition:transform .12s, box-shadow .15s, opacity .15s;
     clip-path:polygon(0 0,100% 0,100% 72%,calc(100% - 12px) 100%,0 100%); }
@@ -156,17 +170,17 @@ REPORT_CSS = """
   .card.active { box-shadow:0 0 0 1px currentColor, 0 0 16px rgba(0,255,156,.22); }
   .card.dim { opacity:.32; }
   .card .n { font-size:2rem; font-weight:700; line-height:1; text-shadow:0 0 12px currentColor; }
-  .card .l { font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+  .card .l { font-size:var(--fs-xs); letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
     margin-top:.25rem; }
   .card.critical { border-left-color:var(--crit); } .card.critical .n { color:var(--crit); }
   .card.high { border-left-color:var(--high); } .card.high .n { color:var(--high); }
   .card.medium { border-left-color:var(--med); } .card.medium .n { color:var(--med); }
   .card.low { border-left-color:var(--low); } .card.low .n { color:var(--low); }
-  .toolbar { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;
-    font-size:.7rem; color:var(--muted); letter-spacing:.1em; }
+  .toolbar { display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; margin-bottom:1.2rem;
+    font-size:var(--fs-xs); color:var(--muted); letter-spacing:.1em; }
   .toolbar .lbl { text-transform:uppercase; }
-  .sortbtn { font:inherit; font-size:.68rem; color:var(--muted); background:transparent;
-    cursor:pointer; border:1px solid var(--grid); padding:.3rem .75rem; border-radius:2px;
+  .sortbtn { font:inherit; font-size:var(--fs-xs); color:var(--muted); background:transparent;
+    cursor:pointer; border:1px solid var(--grid); padding:.4rem .9rem; border-radius:2px;
     letter-spacing:.09em; text-transform:uppercase; text-decoration:none; display:inline-block;
     transition:color .15s,border-color .15s,box-shadow .15s; }
   .sortbtn:hover { color:var(--text); border-color:var(--green); }
@@ -176,9 +190,9 @@ REPORT_CSS = """
   .toolbar .sep { width:1px; height:1.1rem; background:var(--grid); margin:0 .2rem; }
   .toolbar .count { margin-left:auto; text-transform:uppercase; }
   .toolbar .count b { color:var(--green); }
-  .findings { display:flex; flex-direction:column; gap:.55rem; }
+  .findings { display:flex; flex-direction:column; gap:.7rem; }
   .finding { position:relative; background:var(--panel); border:1px solid var(--grid);
-    border-left:3px solid var(--muted); padding:.7rem .95rem .8rem; backdrop-filter:blur(2px);
+    border-left:3px solid var(--muted); padding:1rem var(--pad) 1.1rem; backdrop-filter:blur(2px);
     opacity:0; transform:translateY(8px); animation:reveal .4s ease forwards;
     cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .1s; }
   @keyframes reveal { to { opacity:1; transform:translateY(0); } }
@@ -190,25 +204,25 @@ REPORT_CSS = """
   .finding:focus-visible { outline:1px solid var(--green); outline-offset:2px; }
   .finding.hide { display:none; }
   .finding.fixed { opacity:.5; border-left-color:var(--green); }
-  .finding .inspect { position:absolute; right:.8rem; bottom:.65rem; font-size:.6rem;
+  .finding .inspect { position:absolute; right:.8rem; bottom:.65rem; font-size:var(--fs-xs);
     letter-spacing:.14em; text-transform:uppercase; color:var(--muted); pointer-events:none; }
   .finding:hover .inspect { color:var(--green); text-shadow:0 0 8px rgba(0,255,156,.6); }
-  .fhead { display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; margin-bottom:.55rem; }
+  .fhead { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.75rem; }
   .floc { color:#e9fff4; font-weight:700; letter-spacing:.03em; }
-  .ftag { font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
-    border:1px solid var(--grid); padding:.08rem .45rem; border-radius:2px; }
+  .ftag { font-size:var(--fs-xs); letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+    border:1px solid var(--grid); padding:.15rem .55rem; border-radius:2px; }
   .ftag.live { color:var(--high); border-color:rgba(255,106,60,.4); }
   .ftag.history { color:var(--low); border-color:rgba(40,200,255,.35); }
   .ftag.fixedtag { color:var(--green); border-color:rgba(0,255,156,.45); }
-  .fbody { display:grid; grid-template-columns:5.5rem 1fr; gap:.22rem .8rem; font-size:.8rem; }
-  .fkey { color:var(--muted); text-transform:uppercase; font-size:.63rem; letter-spacing:.1em;
+  .fbody { display:grid; grid-template-columns:6.5rem 1fr; gap:.42rem 1rem; font-size:var(--fs-sm); }
+  .fkey { color:var(--muted); text-transform:uppercase; font-size:var(--fs-xs); letter-spacing:.1em;
     padding-top:.18rem; }
   .fval { color:var(--text); word-break:break-all; }
   .fval.secret { color:#e9fff4; letter-spacing:.05em; }
-  .fval.why { color:var(--muted); line-height:1.5; word-break:normal; }
+  .fval.why { color:var(--muted); line-height:1.65; word-break:normal; }
   .empty { padding:2.5rem; text-align:center; color:var(--muted); letter-spacing:.1em;
     border:1px dashed var(--grid); }
-  .badge { display:inline-block; padding:.12rem .55rem; font-size:.66rem; font-weight:700;
+  .badge { display:inline-block; padding:.2rem .65rem; font-size:var(--fs-xs); font-weight:700;
     letter-spacing:.1em; border:1px solid currentColor; border-radius:2px; }
   .badge.critical { color:var(--crit); animation:pulse 1.2s ease-in-out infinite; }
   .badge.high { color:var(--high); } .badge.medium { color:var(--med); } .badge.low { color:var(--low); }

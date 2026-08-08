@@ -15,43 +15,43 @@
 
   /* hero */
   .hero { padding-bottom:.4rem; }
-  .tagline { max-width:52ch; color:var(--text); font-size:1rem; line-height:1.65;
+  .tagline { max-width:52ch; color:var(--text); font-size:var(--fs-lg); line-height:1.65;
     margin:0 0 1.6rem; opacity:0; animation:fadeUp .6s ease .3s forwards; }
   .tagline b { color:var(--green); font-weight:700; }
   @keyframes fadeUp { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
 
   .stat-row { display:flex; flex-wrap:wrap; gap:.55rem; margin-bottom:2.1rem;
     opacity:0; animation:fadeUp .6s ease .45s forwards; }
-  .stat-chip { display:flex; align-items:baseline; gap:.4rem; background:var(--panel);
-    border:1px solid var(--grid); border-left:2px solid var(--green); padding:.45rem .85rem;
-    font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
-  .stat-chip b { font-size:1rem; color:var(--green); text-shadow:0 0 8px rgba(0,255,156,.45);
+  .stat-chip { display:flex; align-items:baseline; gap:.45rem; background:var(--panel);
+    border:1px solid var(--grid); border-left:2px solid var(--green); padding:.55rem 1rem;
+    font-size:var(--fs-xs); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .stat-chip b { font-size:var(--fs-lg); color:var(--green); text-shadow:0 0 8px rgba(0,255,156,.45);
     letter-spacing:0; text-transform:none; }
 
-  .features { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; margin-bottom:2.2rem; }
+  .features { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--gap); margin-bottom:2.2rem; }
   .fcard { position:relative; background:var(--panel); border:1px solid var(--grid);
-    border-left:3px solid var(--muted); padding:.9rem 1rem 1rem; backdrop-filter:blur(2px);
+    border-left:3px solid var(--muted); padding:1.1rem var(--pad) 1.2rem; backdrop-filter:blur(2px);
     opacity:0; transform:translateY(10px); animation:reveal .45s ease forwards;
     transition:border-color .15s, box-shadow .15s, transform .15s; }
   .fcard:hover { border-color:var(--green); box-shadow:0 0 18px rgba(0,255,156,.12); transform:translateY(-2px); }
   @keyframes reveal { to{opacity:1; transform:none;} }
   .fcard .ico { font-size:1.15rem; color:var(--green); text-shadow:0 0 8px rgba(0,255,156,.5);
     margin-bottom:.5rem; display:block; }
-  .fcard .ftitle { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
+  .fcard .ftitle { font-size:var(--fs-xs); letter-spacing:.1em; text-transform:uppercase; font-weight:700;
     color:var(--text); margin-bottom:.4rem; }
-  .fcard .fdesc { font-size:.7rem; color:var(--muted); line-height:1.55; }
+  .fcard .fdesc { font-size:var(--fs-xs); color:var(--muted); line-height:1.65; }
   .fcard .fdesc code, .tagline code { color:var(--green); background:rgba(0,255,156,.08);
     padding:.05rem .3rem; border-radius:2px; font-size:.95em; }
 
   .cta-row { display:flex; align-items:center; gap:.9rem; margin-bottom:2.4rem;
     opacity:0; animation:fadeUp .6s ease .9s forwards; }
-  .cta-btn { font:inherit; font-size:.78rem; letter-spacing:.16em; text-transform:uppercase;
+  .cta-btn { font:inherit; font-size:var(--fs-sm); letter-spacing:.16em; text-transform:uppercase;
     color:var(--bg); background:var(--green); border:none; border-radius:2px; padding:.8rem 1.6rem;
     cursor:pointer; font-weight:700; text-decoration:none; display:inline-block;
     box-shadow:0 0 18px rgba(0,255,156,.35); transition:box-shadow .15s, transform .1s; }
   .cta-btn:hover { box-shadow:0 0 26px rgba(0,255,156,.55); }
   .cta-btn:active { transform:translateY(1px); }
-  .cta-hint { font-size:.68rem; color:var(--muted); letter-spacing:.04em; }
+  .cta-hint { font-size:var(--fs-xs); color:var(--muted); letter-spacing:.04em; }
   .hero-rule { border:none; border-top:1px dashed var(--grid); margin:0 0 2rem; }
 
   @media (max-width:760px) {
@@ -63,15 +63,15 @@
   }
 
   .panel { position:relative; background:var(--panel); border:1px solid var(--grid);
-    border-left:3px solid var(--green); backdrop-filter:blur(2px); padding:1.4rem 1.5rem 1.6rem;
+    border-left:3px solid var(--green); backdrop-filter:blur(2px); padding:1.6rem 1.7rem 1.8rem;
     clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%); }
-  .field-label { font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+  .field-label { font-size:var(--fs-xs); letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
     margin-bottom:.5rem; display:block; }
   .target-row { display:flex; gap:.6rem; }
   .target-row input[type="text"] { flex:1; min-width:0; }
   input[type="text"], input[type="number"], select {
     background-color:rgba(0,0,0,.35); border:1px solid var(--grid);
-    color:var(--text); font-family:var(--mono); font-size:.85rem; padding:.65rem .8rem; border-radius:2px;
+    color:var(--text); font-family:var(--mono); font-size:var(--fs-md); padding:.65rem .8rem; border-radius:2px;
     outline:none; transition:border-color .15s, box-shadow .15s; caret-color:var(--green); }
   input[type="text"]::placeholder, input[type="number"]::placeholder { color:var(--muted); }
   input[type="text"]:focus, input[type="number"]:focus, select:focus {
@@ -80,31 +80,31 @@
   input[type="number"]:disabled { opacity:.4; }
   select option { background:#05070a; color:var(--text); }
 
-  .browse-btn { font:inherit; font-size:.68rem; letter-spacing:.12em; text-transform:uppercase;
+  .browse-btn { font:inherit; font-size:var(--fs-xs); letter-spacing:.12em; text-transform:uppercase;
     color:var(--muted); background:transparent; border:1px solid var(--grid); border-radius:2px;
     padding:0 1rem; cursor:pointer; white-space:nowrap; transition:color .15s,border-color .15s,box-shadow .15s; }
   .browse-btn:hover { color:var(--green); border-color:var(--green); box-shadow:inset 0 0 10px rgba(0,255,156,.18); }
-  .hint { font-size:.66rem; color:var(--muted); margin-top:.5rem; line-height:1.5; }
+  .hint { font-size:var(--fs-xs); color:var(--muted); margin-top:.55rem; line-height:1.6; }
 
   fieldset { border:none; margin:1.5rem 0 0; padding:0; }
-  legend { font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+  legend { font-size:var(--fs-xs); letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
     margin-bottom:.6rem; padding:0; }
-  .modes { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+  .modes { display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); }
   .mode { position:relative; }
   .mode input { position:absolute; opacity:0; pointer-events:none; }
-  .mode label { display:block; cursor:pointer; padding:.75rem 1rem; background:rgba(0,0,0,.25);
+  .mode label { display:block; cursor:pointer; padding:.95rem var(--pad); background:rgba(0,0,0,.25);
     border:1px solid var(--grid); border-left-width:3px; border-left-color:var(--muted); border-radius:2px;
     transition:border-color .15s, box-shadow .15s, background .15s; user-select:none; }
-  .mode .m-name { font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text);
+  .mode .m-name { font-size:var(--fs-sm); letter-spacing:.08em; text-transform:uppercase; color:var(--text);
     font-weight:700; }
-  .mode .m-desc { font-size:.68rem; color:var(--muted); margin-top:.3rem; line-height:1.5; }
+  .mode .m-desc { font-size:var(--fs-xs); color:var(--muted); margin-top:.35rem; line-height:1.6; }
   .mode input:checked + label { border-color:var(--green); border-left-color:var(--green);
     background:rgba(0,255,156,.06); box-shadow:0 0 16px rgba(0,255,156,.14); }
   .mode input:checked + label .m-name { color:var(--green); text-shadow:0 0 8px rgba(0,255,156,.5); }
   .mode input:focus-visible + label { outline:1px solid var(--green); outline-offset:2px; }
 
-  .toggle-row { display:flex; align-items:center; gap:.6rem; margin-top:1.4rem; cursor:pointer;
-    user-select:none; font-size:.75rem; color:var(--text); position:relative; }
+  .toggle-row { display:flex; align-items:center; gap:.6rem; margin-top:1.5rem; cursor:pointer;
+    user-select:none; font-size:var(--fs-md); color:var(--text); position:relative; }
   .toggle-row input { position:absolute; opacity:0; pointer-events:none; }
   .toggle-row code { color:var(--green); background:rgba(0,255,156,.08); padding:.05rem .3rem;
     border-radius:2px; font-size:.95em; }
@@ -115,18 +115,26 @@
     opacity:0; transform:scale(.5); transition:opacity .12s, transform .12s; box-shadow:0 0 6px var(--green); }
   .toggle-row input:checked ~ .swatch { border-color:var(--green); }
   .toggle-row input:checked ~ .swatch::after { opacity:1; transform:scale(1); }
-  .sub-field { margin:.6rem 0 0 34px; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
-    font-size:.68rem; color:var(--muted); letter-spacing:.04em; }
-  .sub-field input[type="number"] { width:6.5rem; padding:.38rem .6rem; font-size:.78rem; }
+  /* Anything sitting under a toggle lines up with the toggle's LABEL text,
+     which starts one swatch (1.05rem) plus the row gap (.6rem) in. That was
+     hardcoded to 34px, which stopped matching once the type scale changed. */
+  .toggle-desc, .sub-field { margin-left:1.65rem; }
+  .toggle-desc { margin-top:.45rem; font-size:var(--fs-xs); color:var(--muted);
+    line-height:1.65; max-width:64ch; }
+  .sub-field { margin-top:.6rem; display:flex; align-items:center; gap:.5rem;
+    font-size:var(--fs-xs); color:var(--muted); letter-spacing:.04em; }
+  .sub-field label { margin:0; }
+  .sub-field input[type="number"] { width:5.5rem; padding:.35rem .55rem;
+    font-size:var(--fs-xs); text-align:center; }
 
   /* Report options sit under their own legend, so the scan surface (what gets
      read) stays visually separate from the report surface (what gets shown). */
-  .opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; align-items:start; }
+  .opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); align-items:start; }
   .opt { display:flex; flex-direction:column; gap:.35rem; }
-  .opt > label { font-size:.68rem; color:var(--muted); letter-spacing:.06em; }
+  .opt > label { font-size:var(--fs-xs); color:var(--muted); letter-spacing:.06em; }
   .opt select { width:100%; }
 
-  .scan-btn { margin-top:1.7rem; width:100%; font:inherit; font-size:.85rem; letter-spacing:.22em;
+  .scan-btn { margin-top:1.7rem; width:100%; font:inherit; font-size:var(--fs-md); letter-spacing:.22em;
     text-transform:uppercase; color:var(--bg); background:var(--green); border:none; border-radius:2px;
     padding:.85rem; cursor:pointer; font-weight:700; transition:box-shadow .15s, transform .1s, opacity .15s;
     box-shadow:0 0 18px rgba(0,255,156,.35); }
@@ -136,7 +144,7 @@
 
   .error-panel { margin-top:1.2rem; border-left-color:var(--crit); }
   .error-panel .field-label { color:var(--crit); }
-  .error-panel p { margin:0; font-size:.8rem; color:#ffd7e0; line-height:1.6; }
+  .error-panel p { margin:0; font-size:var(--fs-sm); color:#ffd7e0; line-height:1.6; }
 
   /* folder browse modal */
   .modal-overlay { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center;
@@ -149,11 +157,11 @@
   .modal-close { background:transparent; border:none; color:var(--muted); font-size:1.3rem; line-height:1;
     cursor:pointer; padding:.1rem .4rem; transition:color .15s; }
   .modal-close:hover { color:var(--crit); }
-  .modal-path { padding:0 1.1rem .7rem; font-size:.72rem; color:var(--green); word-break:break-all;
+  .modal-path { padding:0 1.1rem .7rem; font-size:var(--fs-xs); color:var(--green); word-break:break-all;
     border-bottom:1px solid var(--grid); text-shadow:0 0 6px rgba(0,255,156,.4); }
   .modal-list { flex:1; overflow-y:auto; padding:.4rem; min-height:180px; }
-  .modal-msg { padding:1.5rem; text-align:center; color:var(--muted); font-size:.75rem; letter-spacing:.08em; }
-  .dir-row { display:flex; align-items:center; gap:.55rem; padding:.5rem .7rem; font-size:.8rem;
+  .modal-msg { padding:1.5rem; text-align:center; color:var(--muted); font-size:var(--fs-sm); letter-spacing:.08em; }
+  .dir-row { display:flex; align-items:center; gap:.6rem; padding:.6rem .85rem; font-size:var(--fs-sm);
     color:var(--text); cursor:pointer; border-radius:2px; transition:background .12s, color .12s; }
   .dir-row:hover { background:rgba(0,255,156,.08); color:var(--green); }
   .dir-row .ico { color:var(--muted); flex:none; }
@@ -168,7 +176,7 @@
   .load-box { text-align:left; }
   .load-box .boot { margin-bottom:.9rem; }
   .load-box .ln { animation-duration:.4s; }
-  .spinner-row { display:flex; align-items:center; gap:.6rem; color:var(--green); font-size:.8rem;
+  .spinner-row { display:flex; align-items:center; gap:.6rem; color:var(--green); font-size:var(--fs-sm);
     letter-spacing:.14em; text-transform:uppercase; }
   .spinner { width:14px; height:14px; border:2px solid rgba(0,255,156,.25); border-top-color:var(--green);
     border-radius:50%; animation:spin .8s linear infinite; }
@@ -204,7 +212,7 @@
 
     <p class="tagline">
       Point it at a local folder or a GitHub URL. <b>Regex signatures</b> catch known
-      formats &mdash; AWS, Stripe, GitHub, Slack, JWTs &mdash; and a <b>Shannon-entropy
+      formats (AWS, Stripe, GitHub, Slack, JWTs), and a <b>Shannon-entropy
       engine</b> catches the custom tokens no pattern knows about. Every finding is
       scored, redacted, and comes with a plain-language reason.
     </p>
@@ -227,7 +235,7 @@
         <span class="ico">&#9678;</span>
         <div class="ftitle">Git History Aware</div>
         <div class="fdesc">Walks <code>git log -p</code> to catch secrets that were
-          committed then deleted &mdash; still leaked, just harder to see.</div>
+          committed then deleted. Still leaked, just harder to see.</div>
       </div>
       <div class="fcard" style="animation-delay:.25s">
         <span class="ico">&#9650;</span>
@@ -245,7 +253,7 @@
 
     <div class="cta-row">
       <a href="#scan" class="cta-btn">Start a scan &darr;</a>
-      <span class="cta-hint">no signup, no upload &mdash; just a path</span>
+      <span class="cta-hint">no signup, no upload, just a path</span>
     </div>
     <hr class="hero-rule">
   </section>
@@ -277,14 +285,14 @@
             <input type="radio" id="modeQuick" name="scan_mode" value="quick" checked>
             <label for="modeQuick">
               <div class="m-name">Quick Scan</div>
-              <div class="m-desc">Skips default-ignored noise &mdash; .git/, node_modules/, build output, binaries, media &amp; archives.</div>
+              <div class="m-desc">Skips default-ignored noise: .git/, node_modules/, build output, binaries, media &amp; archives.</div>
             </label>
           </div>
           <div class="mode">
             <input type="radio" id="modeFull" name="scan_mode" value="full">
             <label for="modeFull">
               <div class="m-name">Full Scan</div>
-              <div class="m-desc">No default ignores. Every file gets scanned &mdash; slower, but nothing is left out.</div>
+              <div class="m-desc">No default ignores. Every file gets scanned. Slower, but nothing is left out.</div>
             </label>
           </div>
         </div>
@@ -299,15 +307,17 @@
         <label for="max_commits">stop after</label>
         <input type="number" id="max_commits" name="max_commits" min="1" step="1"
                placeholder="all" autocomplete="off">
-        <span>commits &mdash; blank walks the whole history, which is slow on a big repo</span>
+        <label for="max_commits">commits</label>
       </div>
+      <div class="toggle-desc">Leave it blank to walk the whole history, which is
+        slow on a big repo.</div>
 
       <label class="toggle-row" for="verify_live">
         <input type="checkbox" id="verify_live" name="verify_live">
         <span class="swatch"></span>
         Verify Live Credentials
       </label>
-      <div class="m-desc" style="margin:-4px 0 0 34px">
+      <div class="toggle-desc">
         Asks AWS, GitHub, Stripe and Slack whether each matching secret still
         works. This sends the candidate secret to that provider over the
         network, so leave it off unless you mean it.
@@ -318,7 +328,7 @@
         <span class="swatch"></span>
         Apply <code>.sentrybaseline</code>
       </label>
-      <div class="m-desc" style="margin:-4px 0 0 34px">
+      <div class="toggle-desc">
         Hides findings already accepted in the target's baseline file, so only
         new ones show up. The report says how many were suppressed. Local
         folders only.
@@ -330,7 +340,7 @@
           <div class="opt">
             <label for="min_severity">minimum severity</label>
             <select id="min_severity" name="min_severity">
-              <option value="low" selected>Low &mdash; show everything</option>
+              <option value="low" selected>Low (show everything)</option>
               <option value="medium">Medium and above</option>
               <option value="high">High and above</option>
               <option value="critical">Critical only</option>

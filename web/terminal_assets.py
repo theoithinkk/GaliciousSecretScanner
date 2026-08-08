@@ -86,18 +86,18 @@ TERMINAL_CSS = """
     70%  { opacity:.12; transform:translateX(-3px); }
     100% { opacity:0; transform:none; }
   }
-  .term-bar { display:flex; align-items:center; gap:.5rem; padding:.55rem .8rem;
+  .term-bar { display:flex; align-items:center; gap:.55rem; padding:.7rem 1rem;
     background:linear-gradient(rgba(20,184,125,.07), rgba(20,184,125,.02));
     border-bottom:1px solid rgba(20,184,125,.2); flex:none; }
   .dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
   .dot.r { background:#ff5f57; } .dot.y { background:#febc2e; } .dot.g { background:#28c840; }
-  .term-title { margin-left:.5rem; font-size:.7rem; letter-spacing:.12em; color:var(--green);
+  .term-title { margin-left:.5rem; font-size:var(--fs-xs); letter-spacing:.12em; color:var(--green);
     text-transform:lowercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .term-x { margin-left:auto; background:transparent; border:1px solid var(--grid); color:var(--muted);
-    font:inherit; font-size:.75rem; line-height:1; padding:.15rem .5rem; cursor:pointer; border-radius:2px; }
+    font:inherit; font-size:var(--fs-sm); line-height:1; padding:.15rem .5rem; cursor:pointer; border-radius:2px; }
   .term-x:hover { color:var(--crit); border-color:var(--crit); }
-  .term-body { flex:1; overflow-y:auto; padding:.9rem 1rem 1.1rem; font-size:.78rem;
-    line-height:1.65; color:var(--text); }
+  .term-body { flex:1; overflow-y:auto; padding:1.15rem 1.3rem 1.3rem; font-size:var(--fs-sm);
+    line-height:1.75; color:var(--text); }
   .term-body .tl { white-space:pre-wrap; word-break:break-word; }
   .term-body .tl.dim { color:var(--muted); }
   .term-body .tl.ok { color:var(--green); }
@@ -105,15 +105,15 @@ TERMINAL_CSS = """
   .term-body .tl.err { color:var(--crit); }
   .term-body .tl.head { color:var(--green); text-shadow:0 0 6px rgba(20,184,125,.35);
     margin-top:.7rem; letter-spacing:.08em; }
-  .term-body .k { color:var(--muted); display:inline-block; width:11ch; }
+  .term-body .k { color:var(--muted); display:inline-block; width:12ch; }
   .term-body .v { color:#e9fff4; }
   .term-body .v.crit { color:var(--crit); } .term-body .v.high { color:var(--high); }
   .term-body .v.med { color:var(--med); }  .term-body .v.low { color:var(--low); }
   .term-body .v.ok { color:var(--green); }
   .term-actions { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;
     margin-top:.9rem; padding-top:.8rem; border-top:1px dashed rgba(20,184,125,.18); }
-  .fixbtn { font:inherit; font-size:.72rem; letter-spacing:.12em; text-transform:uppercase;
-    color:#04080b; background:var(--green); border:none; padding:.5rem 1.1rem; cursor:pointer;
+  .fixbtn { font:inherit; font-size:var(--fs-xs); letter-spacing:.12em; text-transform:uppercase;
+    color:#04080b; background:var(--green); border:none; padding:.6rem 1.25rem; cursor:pointer;
     border-radius:2px; font-weight:700; box-shadow:0 0 14px rgba(20,184,125,.35);
     transition:transform .1s, box-shadow .15s, opacity .15s; }
   .fixbtn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 0 20px rgba(20,184,125,.5); }
@@ -121,7 +121,7 @@ TERMINAL_CSS = """
   .fixbtn.ghost { background:transparent; color:var(--muted); border:1px solid var(--grid);
     box-shadow:none; font-weight:400; }
   .fixbtn.ghost:hover:not(:disabled) { color:var(--green); border-color:var(--green); }
-  .term-hint { font-size:.66rem; color:var(--muted); letter-spacing:.06em; }
+  .term-hint { font-size:var(--fs-xs); color:var(--muted); letter-spacing:.06em; }
   @media (max-width:560px) { .term-body .k { width:auto; display:block; } }
   /* The generic "kill every animation" rule lives once in report_assets.py's
      BASE_CSS; only the panel's own exceptions belong here. */
